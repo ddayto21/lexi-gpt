@@ -11,3 +11,34 @@ A responsive web application that allows users to search for books using natural
 - Integration with OpenLibrary API to fetch book data.
 - Responsive and user-friendly frontend built with React.
 - Caching for faster performance and reduced backend load.
+
+## Application Structure
+
+```
+book-search-web-app/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── App.js
+│   ├── public/
+│   ├── package.json
+│   └── README.md
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── services/
+│   │   ├── models/
+│   │   ├── main.py
+│   └── requirements.txt
+│   └── Dockerfile
+│   └── README.md
+├── README.md
+```
+
+### Initialize React App
+
+````bash
+npx create-react-app frontend --use-yarn --template cra-template --skip-install```
+````
