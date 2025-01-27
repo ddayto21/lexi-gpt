@@ -60,5 +60,8 @@ swagger-cli validate openapi.yaml
 ```
 
 ```bash
-uvicorn app.main:app --reload
+fastapi dev app/main.py
 ```
+
+http://127.0.0.1:8000/docs
+http://127.0.0.1:8000/redoc
