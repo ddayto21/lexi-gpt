@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Book Search API
+  description: A REST API for searching books using natural language queries. Integrates OpenLibrary and LLM for enhanced results.
+  version: 1.0.0
+
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /search-books:
+    post:
+      summary: Search for books using natural language queries
+      description: Accepts a natural language query, processes it with an LLM, retrieves book data from OpenLibrary, and returns enhanced results.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: The user's natural language search query for books.
+              required:
+                - query
+      responses:
+        '200':
+          description: Successful response with book recommendations.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          description: Title of the book.
+                        author:
+                          type: string
+                          description: Author of the book.
+                        summary:
+                          type: string
+                          description: A natural language summary of the book.
+        '400':
+          description: Invalid request.
+        '500':
+          description: Internal server error.
