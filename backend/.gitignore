@@ -1,0 +1,44 @@
+# Python-related files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.Python
+env/
+venv/
+*.log
+
+# Node.js-related files
+node_modules/
+package-lock.json
+yarn.lock
+
+# OpenAPI/Swagger files
+swagger.yaml
+swagger.json
+
+# Temporary files
+*.tmp
+*.cache
+*.swp
+
+# Environment files
+.env
+.env.*
+
+# IDE/Editor settings
+.vscode/
+.idea/
+*.iml
+
+# Debug and coverage
+.pytest_cache/
+.cache/
+.coverage
+coverage/
+*.cover
+
+# System files
+.DS_Store
+Thumbs.db

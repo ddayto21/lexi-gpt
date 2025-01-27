@@ -42,3 +42,10 @@ book-search-web-app/
 ````bash
 npx create-react-app frontend --use-yarn --template cra-template --skip-install```
 ````
+
+## Install Swagger Editor CLI
+
+```bash
+yarn add swagger-cli --dev
+
+```
