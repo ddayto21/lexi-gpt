@@ -6,9 +6,10 @@ from app.services.llm import enhance_results
 
 router = APIRouter()
 
+
 @router.post("/search-books", response_model=list[Book])
 async def search_books(request: QueryRequest):
-    """
+    """'
     Handles book search requests.
     1. Processes the query with LLM.
     2. Fetches books from OpenLibrary.

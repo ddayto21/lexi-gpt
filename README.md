@@ -49,3 +49,16 @@ npx create-react-app frontend --use-yarn --template cra-template --skip-install`
 yarn add swagger-cli --dev
 
 ```
+
+### Validate Changes Consistently
+
+As changes are made to the backend, revalidate the `openapi.yaml` file after any updates:
+
+```bash
+swagger-cli validate openapi.yaml
+
+```
+
+```bash
+uvicorn app.main:app --reload
+```
