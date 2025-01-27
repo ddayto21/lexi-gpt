@@ -65,3 +65,17 @@ fastapi dev app/main.py
 
 http://127.0.0.1:8000/docs
 http://127.0.0.1:8000/redoc
+
+## Add TypeScript Support
+
+```bash
+yarn add typescript @types/react @types/react-dom
+```
+
+Create a TypeScript Configuration File
+
+```bash
+npx tsc --init
+
+```
+Modify the tsconfig.json file with the following settings for a React project:
