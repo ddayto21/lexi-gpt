@@ -72,10 +72,14 @@ http://127.0.0.1:8000/redoc
 yarn add typescript @types/react @types/react-dom
 ```
 
-Create a TypeScript Configuration File
+## OpenLibrary API
 
-```bash
-npx tsc --init
+Examples
 
-```
-Modify the tsconfig.json file with the following settings for a React project:
+The URL format for API is simple. Take the search URL and add .json to the end. Eg:
+
+    https://openlibrary.org/search.json?q=the+lord+of+the+rings
+    https://openlibrary.org/search.json?title=the+lord+of+the+rings
+    https://openlibrary.org/search.json?author=tolkien&sort=new
+    https://openlibrary.org/search.json?q=the+lord+of+the+rings&page=2
+    https://openlibrary.org/search/authors.json?q=twain
