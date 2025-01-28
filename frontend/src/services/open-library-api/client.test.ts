@@ -1,7 +1,7 @@
-import { searchBooks, getBookCover } from "./client";
+import { searchBooks, searchBySubjects, getBookCover } from "./client";
 import { beforeAll, jest, describe, it, expect } from "@jest/globals";
 
-describe.skip("Open Library API - Book Search (Integration Tests)", () => {
+describe("Open Library API - Book Search (Integration Tests)", () => {
   beforeAll(() => {
     jest.setTimeout(15000); // Extend timeout for slow API responses
   });
@@ -83,5 +83,38 @@ describe("Book Cover URLs", () => {
     const expectedUrl = "https://covers.openlibrary.org/b/olid/-M.jpg";
 
     expect(result).toBe(expectedUrl);
+  });
+});
+
+describe("searchBySubjects (Integration Test)", () => {
+  it("should return valid results for a single subject", async () => {
+    const result = await searchBySubjects(["travel"]);
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    expect(result.docs.length).toBeGreaterThan(0);
+  });
+
+  it("should return valid results for multiple subjects using AND", async () => {
+    const result = await searchBySubjects(["travel", "adventure"], "AND");
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+  });
+
+  it("should return valid results for multiple subjects using OR", async () => {
+    const result = await searchBySubjects(["travel", "adventure"], "OR");
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+  });
+
+  it("should handle pagination correctly", async () => {
+    const result = await searchBySubjects(["history"], "AND", 2, 5);
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+  });
+
+  it("should throw an error when no subjects are provided", async () => {
+    await expect(searchBySubjects([])).rejects.toThrow(
+      "At least one subject must be provided."
+    );
   });
 });

@@ -4,43 +4,14 @@
  */
 
 import type { Book, BookSearchResponse } from "../../../types/open-library-api";
+import { constructSubjectQuery } from "./util";
 
 const BASE_URL = "https://openlibrary.org/search.json";
-
-/**
- * Constructs a query string for the Open Library Subject Search API.
- * @param {string[]} subjects - Array of subject terms to search for.
- * @param {string} [booleanOperator="AND"] - Boolean operator to combine subjects (e.g., "AND", "OR").
- * @param {number} [page=1] - Page number for pagination.
- * @param {number} [limit=10] - Number of results per page.
- * @returns {string} - The constructed query string.
- */
-const constructSubjectQuery = (
-  subjects: string[],
-  booleanOperator: "AND" | "OR" = "AND",
-  page: number = 1,
-  limit: number = 10
-): string => {
-  const URL = `${BASE_URL}/subjects.json`;
-  const subjectQuery = subjects
-    .map((subject) => `subject:${encodeURIComponent(subject)}`)
-    .join(`+${booleanOperator}+`);
-
-  const params = new URLSearchParams({
-    q: subjectQuery,
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-
-  return `${URL}?${params.toString()}`;
-};
-
 /**
  * Searches for books in the Open Library API with optional parameters.
  * @param {string} query - Search query (title, author, or general keywords).
  * @param {number} [page=1] - Page number for pagination.
  * @param {number} [limit=10] - Number of results per page.
-
  * @param {string} [language] - Two-letter language code (ISO 639-1).
  * @param {boolean} [availability=false] - Whether to include availability data.
  * @returns {Promise<BookSearchResponse>} - A promise that resolves to book search results.
@@ -49,36 +20,26 @@ export const searchBooks = async (
   query: string,
   page: number = 1,
   limit: number = 10,
-
   language?: string,
   availability: boolean = false
 ): Promise<BookSearchResponse> => {
   if (!query.trim()) throw new Error("Query cannot be empty.");
 
-  const params = new URLSearchParams({
-    q: query,
-    page: page.toString(),
-    limit: limit.toString(),
-  });
+  const url = constructSubjectQuery(
+    [query], // Use the query as the subject
+    "AND",
+    page,
+    limit
+  );
 
-  if (language) params.append("lang", language);
-  if (availability) params.append("fields", "*,availability");
+  if (language) url.concat(`&lang=${language}`);
+  if (availability) url.concat(`&fields=*,availability`);
 
-  const url = `${BASE_URL}/search.json?${params.toString()}`;
-  console.log(`url: ${url}`);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch books from Open Library.");
   return response.json();
 };
 
-/**
- * Fetches books from the Open Library Subject Search API using fuzzy matching and boolean logic.
- * @param {string[]} subjects - Array of subject terms to search for.
- * @param {string} [booleanOperator="AND"] - Boolean operator to combine subjects (e.g., "AND", "OR").
- * @param {number} [page=1] - Page number for pagination.
- * @param {number} [limit=10] - Number of results per page.
- * @returns {Promise<any>} - A promise that resolves to the search results from the Open Library API.
- */
 export const searchBySubjects = async (
   subjects: string[],
   booleanOperator: "AND" | "OR" = "AND",
