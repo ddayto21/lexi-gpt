@@ -4,46 +4,41 @@
  */
 
 const BASE_URL = "https://openlibrary.org";
+import type { Book, BookSearchResponse } from "../../types/open-library-api";
 
 /**
- * Represents a book returned by the Open Library API.
- */
-export interface Book {
-  cover_i?: number;
-  has_fulltext?: boolean;
-  edition_count?: number;
-  title: string;
-  author_name?: string[];
-  first_publish_year?: number;
-  key: string;
-  author_key?: string[];
-  public_scan_b?: boolean;
-}
+ * Searches for books in the Open Library API with optional parameters.
+ * @param {string} query - Search query (title, author, or general keywords).
+ * @param {number} [page=1] - Page number for pagination.
+ * @param {number} [limit=10] - Number of results per page.
 
-/**
- * Represents the API response structure for a book search.
- */
-export interface BookSearchResponse {
-  start: number;
-  num_found: number;
-  docs: Book[];
-}
-
-/**
- * Searches for books in the Open Library API.
- * @param {string} query - The search query (title, author, or general keywords).
- * @param {number} [page=1] - The page number for pagination.
+ * @param {string} [language] - Two-letter language code (ISO 639-1).
+ * @param {boolean} [availability=false] - Whether to include availability data.
  * @returns {Promise<BookSearchResponse>} - A promise that resolves to book search results.
  */
 export const searchBooks = async (
   query: string,
-  page: number = 1
+  page: number = 1,
+  limit: number = 10,
+
+  language?: string,
+  availability: boolean = false
 ): Promise<BookSearchResponse> => {
-  const url = `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&page=${page}`;
+  if (!query.trim()) throw new Error("Query cannot be empty.");
+
+  const params = new URLSearchParams({
+    q: query,
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  if (language) params.append("lang", language);
+  if (availability) params.append("fields", "*,availability");
+
+  const url = `${BASE_URL}/search.json?${params.toString()}`;
+  console.log(`url: ${url}`);
   const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("Failed to fetch books from Open Library.");
-  }
+  if (!response.ok) throw new Error("Failed to fetch books from Open Library.");
   return response.json();
 };
 
@@ -53,7 +48,10 @@ export const searchBooks = async (
  * @param {"S" | "M" | "L"} size - The desired cover size (S = Small, M = Medium, L = Large).
  * @returns {string} - The URL of the book cover image.
  */
-export const getBookCover = (olid: string, size: "S" | "M" | "L" = "M"): string => {
+export const getBookCover = (
+  olid: string,
+  size: "S" | "M" | "L" = "M"
+): string => {
   return `https://covers.openlibrary.org/b/olid/${olid}-${size}.jpg`;
 };
 
