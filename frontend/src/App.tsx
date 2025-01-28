@@ -1,57 +1,49 @@
 import React, { useState } from "react";
 import { SearchBar } from "./components/SearchBar";
-import { searchBooks } from "./services/api";
 import type { Book } from "../types/api";
 
 const App: React.FC = () => {
-  const [books, setBooks] = useState<Book[]>([]); // State to store book recommendations
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSearch = async (query: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const recommendations = await searchBooks(query); // Call the API service
-      setBooks(recommendations); // Update the state with book recommendations
-    } catch (err) {
-      setError((err as Error).message || "Something went wrong!");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Book Finder</h1>
-        <SearchBar onSearch={handleSearch} />
-        {isLoading && <p>Loading...</p>}
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <div>
-          {books.map((book, index) => (
-            <div
-              key={index}
-              style={{
-                margin: "10px",
-                border: "1px solid #ddd",
-                padding: "10px",
-              }}
-            >
-              <h3>{book.title}</h3>
-              <p>
-                <strong>Author:</strong> {book.author}
-              </p>
-              <p>
-                <strong>Summary:</strong> {book.summary}
-              </p>
-            </div>
-          ))}
-        </div>
-      </header>
+    <div style={styles.appContainer}>
+      <h1 style={styles.title}>Search for a book</h1>
+      <SearchBar />
     </div>
   );
+};
+
+import { CSSProperties } from "react";
+
+const styles: { [key: string]: CSSProperties } = {
+  appContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+    backgroundColor: "#0d0d0d",
+    color: "#f0f0f0",
+    fontFamily: "Inter, sans-serif",
+  },
+  title: {
+    fontSize: "24px",
+    fontWeight: "bold",
+    marginBottom: "20px",
+  },
+  actionButtons: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "20px",
+  },
+  actionButton: {
+    backgroundColor: "#1e1e1e",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "20px",
+    padding: "10px 15px",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background 0.2s ease-in-out, transform 0.2s ease-in-out",
+  },
 };
 
 export default App;
