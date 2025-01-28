@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { constructSubjectQuery } from "../open-library-api/util";
+import { constructSubjectQuery } from "./construct-subject-query";
 
 describe("constructSubjectQuery", () => {
   it("should construct a valid query string with one subject", () => {
@@ -45,3 +45,4 @@ describe("constructSubjectQuery", () => {
     );
   });
 });
+

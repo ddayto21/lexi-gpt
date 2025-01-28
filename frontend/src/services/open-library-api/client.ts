@@ -4,7 +4,7 @@
  */
 
 import type { Book, BookSearchResponse } from "../../../types/open-library-api";
-import { constructSubjectQuery } from "./util";
+import { constructSubjectQuery } from "./construct-subject-query";
 
 const BASE_URL = "https://openlibrary.org/search.json";
 /**
