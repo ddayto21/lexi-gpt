@@ -3,7 +3,7 @@
  * Provides functions to search for books, retrieve author details, and fetch book covers.
  */
 
-import type { Book, BookSearchResponse } from "../../../types/open-library-api";
+import type { OpenLibraryBook, OpenLibrarySearchResponse } from "../../../types/open-library-api";
 import { constructSubjectQuery } from "./construct-subject-query";
 
 const BASE_URL = "https://openlibrary.org/search.json";
@@ -22,7 +22,7 @@ export const searchBooks = async (
   limit: number = 10,
   language?: string,
   availability: boolean = false
-): Promise<BookSearchResponse> => {
+): Promise<OpenLibrarySearchResponse> => {
   if (!query.trim()) throw new Error("Query cannot be empty.");
 
   const url = constructSubjectQuery(

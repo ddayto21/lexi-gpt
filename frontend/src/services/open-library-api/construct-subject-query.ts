@@ -53,7 +53,6 @@ export const handleSearchRequest = async (
     page,
     limit
   );
-  console.log(`Constructed Query URL: ${queryUrl}`);
 
   // Use searchBySubjects to fetch results
   const results = await searchBySubjects(
