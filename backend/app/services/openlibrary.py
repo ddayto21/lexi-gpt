@@ -39,6 +39,7 @@ class OpenLibraryAPI:
     async def search(
         self,
         query: str,
+        limit: int = 5,
         ddc: Optional[str] = None,
         lcc: Optional[str] = None,
         birth_date: Optional[int] = None,
@@ -71,6 +72,10 @@ class OpenLibraryAPI:
                 key: self.base_url + endpoint.format(query=enhanced_query)
                 for key, endpoint in self.ENDPOINTS.items()
             }
+            
+            # (Open Library's /search.json respects "&limit=X")
+            if "book_search" in urls:
+                urls["book_search"] += f"&limit={limit}"
             tasks = [self.fetch_data(client, url) for url in urls.values()]
             results = await asyncio.gather(*tasks)
 
