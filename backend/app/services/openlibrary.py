@@ -1,14 +1,14 @@
 import asyncio
-import httpx
 import json
 from typing import Dict, Any, Optional
+import httpx
 
 BASE_URL = "https://openlibrary.org"
 
 
 class OpenLibraryAPI:
     """
-    Service for querying Open Library APIs asynchronously with enhanced search capabilities.
+    Service for querying Open Library APIs asynchronously with advanced/optional filters.
     """
 
     ENDPOINTS = {
@@ -22,15 +22,11 @@ class OpenLibraryAPI:
     }
 
     def __init__(self):
-        """Initializes the Open Library API service."""
         self.base_url = BASE_URL
 
     async def fetch_data(self, client: httpx.AsyncClient, url: str) -> Dict[str, Any]:
         """
-        Makes an asynchronous request to an Open Library API endpoint.
-        :param client: httpx.AsyncClient session
-        :param url: Full API request URL
-        :return: JSON response data or an empty dictionary on failure
+        Makes an async request to an Open Library endpoint and returns JSON data or {} on failure.
         """
         try:
             response = await client.get(url)
@@ -51,20 +47,10 @@ class OpenLibraryAPI:
         ebook_access: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Searches Open Library APIs with advanced query filtering.
-
-        :param query: User's search query.
-        :param ddc: Dewey Decimal Classification filter (e.g., "ddc:200*").
-        :param lcc: Library of Congress Classification filter (e.g., "lcc:A*").
-        :param birth_date: Search for authors born in a specific year.
-        :param subject: Search for books by subject.
-        :param exclude_subject: Exclude books that have a specific subject.
-        :param ebook_access: Filter books based on availability (e.g., "no_ebook", "borrowable", "public").
-        :return: Dictionary containing search results from various endpoints.
+        Searches Open Library with optional filters (DDC, LCC, birth_date, etc.),
+        returning a dict with results from each endpoint.
         """
-
-        # Build enhanced query string
-        query_filters = [f"{query}"]
+        query_filters = [query]
         if ddc:
             query_filters.append(f"ddc:{ddc}")
         if lcc:
@@ -81,17 +67,14 @@ class OpenLibraryAPI:
         enhanced_query = " AND ".join(query_filters)
 
         async with httpx.AsyncClient() as client:
-            # Construct URLs for each API endpoint with enhanced query
             urls = {
                 key: self.base_url + endpoint.format(query=enhanced_query)
                 for key, endpoint in self.ENDPOINTS.items()
             }
+            tasks = [self.fetch_data(client, url) for url in urls.values()]
+            results = await asyncio.gather(*tasks)
 
-            # Fetch data concurrently
-            results = await asyncio.gather(
-                *[self.fetch_data(client, url) for url in urls.values()]
-            )
-
+            # Order of results matches order of URLs
             return {
                 "book_search": results[0].get("docs", []),
                 "authors": results[1].get("docs", []),
@@ -101,17 +84,3 @@ class OpenLibraryAPI:
                 "works": results[5],
                 "editions": results[6],
             }
-
-
-# Example Usage
-if __name__ == "__main__":
-
-    async def main():
-        openlibrary_service = OpenLibraryAPI()
-        query = "Harry Potter"
-        results = await openlibrary_service.search(
-            query, ddc="200*", birth_date=1965, subject="fantasy", ebook_access="public"
-        )
-        print(json.dumps(results, indent=2))
-
-    asyncio.run(main())

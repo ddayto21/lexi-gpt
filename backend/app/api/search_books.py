@@ -1,29 +1,79 @@
 from fastapi import APIRouter, HTTPException
-from app.models.query import QueryRequest
-from app.models.book import Book
-from app.services.openlibrary import fetch_books
-from app.services.llm import enhance_results
+from typing import List
+
+from app.schemas.search_books import (
+    SearchBooksRequest,
+    SearchBooksResponse,
+    Book,
+)
+from app.services.openlibrary import OpenLibraryAPI
+
 
 router = APIRouter()
 
 
-@router.post("/search-books", response_model=list[Book])
-async def search_books(request: QueryRequest):
-    """'
-    Handles book search requests.
-    1. Processes the query with LLM.
-    2. Fetches books from OpenLibrary.
-    3. Enhances the results using LLM.
-    """
-    try:
-        # Step 1: Process the query with LLM
-        processed_query = await enhance_results(request.query)
+@router.post("/", response_model=SearchBooksResponse)
+async def search_books(request: SearchBooksRequest):
+    # 1. Check for profanity in request.query; if found, raise 403
+    if contains_profanity(request.query):
+        raise HTTPException(
+            status_code=403,
+            detail="The Book Search service is moderated and does not allow for profanity.",
+        )
+    # 2. Refine the query using an LLM
+    refined_query = call_llm_for_query_refinement(request.query)
 
-        # Step 2: Fetch books from OpenLibrary
-        books = await fetch_books(processed_query)
+    # 3. Query OpenLibrary asynchronously
+    client = OpenLibraryAPI()
+    results = await client.search(refined_query)
 
-        # Step 3: Return the enhanced book data
-        return books
+    # Extract book documents from the "book_search" key.
+    book_docs = results.get("book_search", [])
+    books_data = []
+    for doc in book_docs:
+        title = doc.get("title", "Untitled")
+        authors = doc.get("author_name", [])
+        # Often "description" isn't in the search document - this is an example
+        description = ""
+        if "first_sentence" in doc:
+            first_sentence = doc["first_sentence"]
+            if isinstance(first_sentence, dict):
+                description = first_sentence.get("value", "")
+            elif isinstance(first_sentence, str):
+                description = first_sentence
+        books_data.append(
+            {"title": title, "authors": authors, "description": description}
+        )
+        # 4. Process or enhance book data with the LLM if needed
+    enhanced_data = call_llm_for_book_descriptions(books_data)
+        
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    # 5. Return recommendations
+    return SearchBooksResponse(recommendations=enhanced_data)
+
+
+def contains_profanity(query: str) -> bool:
+    # Implement a minimal profanity check
+    return False
+
+
+def call_llm_for_query_refinement(query: str) -> str:
+
+    return query
+
+
+def call_openlibrary(query: str) -> List[dict]:
+
+    return [
+        {
+            "title": "Example Title",
+            "authors": ["Author1"],
+            "description": "Example description",
+        }
+    ]
+
+
+def call_llm_for_book_descriptions(books_data: List[dict]) -> List[Book]:
+    # Use LLM to create natural-language descriptions for each book
+
+    return [Book(**book) for book in books_data]
