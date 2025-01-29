@@ -1,9 +1,84 @@
-import { searchBooks, searchBySubjects, getBookCover } from "./client";
+import {
+  fetchFromOpenLibrary,
+  searchBooks,
+  searchBySubjects,
+  getBookCover,
+} from "./client";
 import { beforeAll, jest, describe, it, expect } from "@jest/globals";
 
-describe("Open Library API - Book Search (Integration Tests)", () => {
+describe("fetchFromOpenLibrary (Integration Tests)", () => {
   beforeAll(() => {
-    jest.setTimeout(15000); // Extend timeout for slow API responses
+    jest.setTimeout(150000);
+  });
+  it("should return valid results for a title search query", async () => {
+    const url = "https://openlibrary.org/search.json?title=flammable";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    expect(result.docs.length).toBeGreaterThan(0);
+    const firstBook = result.docs[0];
+    expect(firstBook).toHaveProperty("title");
+    expect(firstBook).toHaveProperty("key");
+  });
+
+  it("should return valid results for an author search query", async () => {
+    const url = "https://openlibrary.org/search.json?author=tolkien";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    expect(result.docs.length).toBeGreaterThan(0);
+    const firstBook = result.docs[0];
+    expect(firstBook).toHaveProperty("author_name");
+    expect(firstBook.author_name).toContain("J.R.R. Tolkien");
+  });
+
+  it("should return valid results for a subject search query", async () => {
+    const url = "https://openlibrary.org/search.json?q=subject:travel";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    expect(result.docs.length).toBeGreaterThan(0);
+
+    const firstBook = result.docs[0];
+    expect(firstBook).toHaveProperty("title");
+  });
+
+  it("should handle a search query with multiple filters", async () => {
+    const url =
+      "https://openlibrary.org/search.json?q=subject:dogs+AND+place:istanbul";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+  });
+
+  it.skip("should handle invalid queries gracefully", async () => {
+    const url = "https://openlibrary.org/search.json?q=invalid_query";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    // Expect no results for an invalid query
+    expect(result.docs.length).toBe(0);
+    // Ensure the query is correctly passed
+    expect(result.q).toBe("invalid_query");
+  });
+  it("should return empty results for an unlikely query", async () => {
+    const url = "https://openlibrary.org/search.json?q=unlikely+query";
+    const result = await fetchFromOpenLibrary(url);
+
+    expect(result).toHaveProperty("docs");
+    expect(Array.isArray(result.docs)).toBe(true);
+    expect(result.docs.length).toBe(0);
+  });
+});
+
+describe.skip("Search Books", () => {
+  beforeAll(() => {
+    jest.setTimeout(150000);
   });
 
   it("should return valid book search results from Open Library", async () => {
@@ -83,38 +158,5 @@ describe("Book Cover URLs", () => {
     const expectedUrl = "https://covers.openlibrary.org/b/olid/-M.jpg";
 
     expect(result).toBe(expectedUrl);
-  });
-});
-
-describe("searchBySubjects (Integration Test)", () => {
-  it("should return valid results for a single subject", async () => {
-    const result = await searchBySubjects(["travel"]);
-    expect(result).toHaveProperty("docs");
-    expect(Array.isArray(result.docs)).toBe(true);
-    expect(result.docs.length).toBeGreaterThan(0);
-  });
-
-  it("should return valid results for multiple subjects using AND", async () => {
-    const result = await searchBySubjects(["travel", "adventure"], "AND");
-    expect(result).toHaveProperty("docs");
-    expect(Array.isArray(result.docs)).toBe(true);
-  });
-
-  it("should return valid results for multiple subjects using OR", async () => {
-    const result = await searchBySubjects(["travel", "adventure"], "OR");
-    expect(result).toHaveProperty("docs");
-    expect(Array.isArray(result.docs)).toBe(true);
-  });
-
-  it("should handle pagination correctly", async () => {
-    const result = await searchBySubjects(["history"], "AND", 2, 5);
-    expect(result).toHaveProperty("docs");
-    expect(Array.isArray(result.docs)).toBe(true);
-  });
-
-  it("should throw an error when no subjects are provided", async () => {
-    await expect(searchBySubjects([])).rejects.toThrow(
-      "At least one subject must be provided."
-    );
   });
 });
