@@ -46,31 +46,20 @@ async def search_books(request: SearchBooksRequest):
         )
         # 4. Process or enhance book data with the LLM if needed
     enhanced_data = call_llm_for_book_descriptions(books_data)
-        
 
     # 5. Return recommendations
     return SearchBooksResponse(recommendations=enhanced_data)
 
 
 def contains_profanity(query: str) -> bool:
-    # Implement a minimal profanity check
-    return False
+    # Minimal profanity check (example)
+    prohibited_words = ["badword"]  # You decide what is "profanity"
+    return any(word in query.lower() for word in prohibited_words)
 
 
 def call_llm_for_query_refinement(query: str) -> str:
 
     return query
-
-
-def call_openlibrary(query: str) -> List[dict]:
-
-    return [
-        {
-            "title": "Example Title",
-            "authors": ["Author1"],
-            "description": "Example description",
-        }
-    ]
 
 
 def call_llm_for_book_descriptions(books_data: List[dict]) -> List[Book]:
