@@ -1,7 +1,21 @@
 import React, { useState } from "react";
 
-export const SearchBar: React.FC = () => {
-  const [query, setQuery] = useState<string>("");
+interface SearchBarProps {
+  onSearch: (query: string) => void;
+}
+
+export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
+  const [input, setInput] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleSubmit = () => {
+    if (input.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      console.log(`Submitting search query: ${input}`);
+      onSearch(input);
+      setTimeout(() => setIsSubmitting(false), 500); 
+    }
+  };
 
   return (
     <div style={styles.searchBarContainer}>
@@ -12,11 +26,18 @@ export const SearchBar: React.FC = () => {
         <input
           type="text"
           placeholder="Describe a book you're interested in reading..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()} // Attach handleSubmit directly here
           style={styles.searchInput}
         />
-        <button style={styles.sendButton}>⬆️</button>
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting} // Disable button while submitting
+          style={styles.sendButton}
+        >
+          ⬆️
+        </button>
       </div>
     </div>
   );
@@ -60,9 +81,6 @@ const styles = {
     fontSize: "16px",
     cursor: "pointer",
     transition: "background 0.2s",
-  },
-  sendButtonHover: {
-    background: "#3d8b40",
   },
   icon: {
     color: "#888",

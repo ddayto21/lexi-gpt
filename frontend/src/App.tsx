@@ -1,17 +1,46 @@
 import React, { useState } from "react";
 import { SearchBar } from "./components/SearchBar";
 import type { Book } from "../types/api";
+import { searchBySubjects } from "./services/open-library-api/client"
+import { CSSProperties } from "react";
 
 const App: React.FC = () => {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = async (query: string) => {
+    setError(null);
+    try {
+      const results = await searchBySubjects(query);
+      setBooks(results.docs || []);
+    } catch (err) {
+      setError("Failed to fetch books. Please try again.");
+    }
+  };
+
   return (
     <div style={styles.appContainer}>
       <h1 style={styles.title}>Search for a book</h1>
-      <SearchBar />
+      <SearchBar onSearch={handleSearch} />
+      {error && <p style={styles.error}>{error}</p>}
+      <div style={styles.resultsContainer}>
+        {books.map((book, index) => (
+          <div key={index} style={styles.bookCard}>
+            <h3>{book.title}</h3>
+            <p>
+              <strong>Author:</strong> {book.author_name?.join(", ") || "N/A"}
+            </p>
+            <p>
+              <strong>First Published:</strong>{" "}
+              {book.first_publish_year || "N/A"}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-import { CSSProperties } from "react";
 
 const styles: { [key: string]: CSSProperties } = {
   appContainer: {
@@ -29,20 +58,21 @@ const styles: { [key: string]: CSSProperties } = {
     fontWeight: "bold",
     marginBottom: "20px",
   },
-  actionButtons: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "20px",
+  error: {
+    color: "red",
+    marginTop: "10px",
   },
-  actionButton: {
+  resultsContainer: {
+    marginTop: "20px",
+    width: "100%",
+    maxWidth: "600px",
+  },
+  bookCard: {
     backgroundColor: "#1e1e1e",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "20px",
-    padding: "10px 15px",
-    fontSize: "14px",
-    cursor: "pointer",
-    transition: "background 0.2s ease-in-out, transform 0.2s ease-in-out",
+    padding: "15px",
+    borderRadius: "10px",
+    marginBottom: "10px",
+    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.5)",
   },
 };
 
