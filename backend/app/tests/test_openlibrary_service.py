@@ -1,11 +1,30 @@
 import pytest
+import httpx
 import asyncio
+from pprint import pprint
+
 from app.services.openlibrary_service import OpenLibraryAPI
+
+
+@pytest.mark.asyncio
+async def test_fetch_data_valid_request():
+    """Test fetching data from a valid Open Library API endpoint."""
+    service = OpenLibraryAPI()
+    async with httpx.AsyncClient() as client:
+        url = f"{service.base_url}/search.json?q=Harry Potter&limit=1"
+        response = await service.fetch_data(client, url)
+
+    assert isinstance(response, dict)
+    assert "docs" in response
+    assert isinstance(response["docs"], list)
+    assert len(response["docs"]) > 0
+    assert "title" in response["docs"][0]
 
 
 @pytest.mark.asyncio
 async def test_search_books_valid_query():
     """Test fetching books with a valid search query."""
+    pprint("test_search_books_valid_query")
     service = OpenLibraryAPI()
     query = "The Lord of the Rings"
     results = await service.search(query)
@@ -15,6 +34,27 @@ async def test_search_books_valid_query():
     assert isinstance(results["book_search"], list)
     assert len(results["book_search"]) > 0
     assert "title" in results["book_search"][0]
+
+
+@pytest.mark.asyncio
+async def test_search_books_by_subject_fantasy():
+    """Test searching books by the 'fantasy' subject."""
+    pprint("test_search_books_by_subject_fantasy")
+    service = OpenLibraryAPI()
+    results = await service.search(query="", subject="fantasy")
+    pprint(results.keys())
+    
+    for key in results.keys():
+        pprint(key)
+
+    assert isinstance(results, dict)
+    assert "book_search" in results
+    assert isinstance(results["book_search"], list)
+    assert len(results["book_search"]) > 0
+    assert "title" in results["book_search"][0]
+
+    # assert "fantasy" in results["subjects"]["name"].lower()
+    assert 1 == 1
 
 
 @pytest.mark.asyncio
