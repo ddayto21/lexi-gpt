@@ -1,4 +1,4 @@
-# Use official Python image
+# Use official Python slim image
 FROM python:3.10-slim
 
 # Set environment variables
@@ -8,9 +8,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     POETRY_VERSION=2.0.1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y curl && \
-    curl -sSL https://install.python-poetry.org | python3 -
+# Install system dependencies and Poetry, then clean up
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    export PATH="$HOME/.local/bin:$PATH"
 
 # Set working directory
 WORKDIR /app
@@ -18,8 +19,8 @@ WORKDIR /app
 # Copy dependency files first (leveraging Docker layer caching)
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies
-RUN poetry install --no-dev --no-interaction --no-ansi
+# Install dependencies (only main)
+RUN /root/.local/bin/poetry install --only main --no-interaction --no-ansi
 
 # Copy application code
 COPY . .
