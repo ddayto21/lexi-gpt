@@ -28,3 +28,8 @@ jobs:
             curl --silent --fail http://localhost:8000/health && break
             sleep 2
           done
+          echo "API is ready!"
+
+      - name: Run Tests with pytest
+        run: |
+          docker exec backend-container poetry run pytest --maxfail=3 --disable-warnings -v
