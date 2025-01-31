@@ -26,6 +26,9 @@ RUN /root/.local/bin/poetry install --with dev --no-interaction --no-ansi
 # Copy application code
 COPY . .
 
+RUN rm -rf .env .env.tests node_modules .pytest_cache .mypy_cache .ruff_cache __pycache__
+
+
 # Expose application port
 EXPOSE 8000
 

@@ -1,0 +1,17 @@
+# Ignore environment files
+.env
+.env.*
+
+# Ignore cache and dependency directories
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Ignore logs
+*.log
+logs/
