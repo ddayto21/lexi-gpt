@@ -19,7 +19,7 @@ jobs:
         run: docker build -t backend-app ./backend
 
       - name: Run the Container
-        run: docker run -d -p 8000:8000 --name backend-container backend-app
+        run: docker run -d -p 8000:8000 --name backend-container -e API_URL="${{ secrets.API_URL }}" backend-app
 
       - name: Wait for API to be Ready
         run: |
