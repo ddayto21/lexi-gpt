@@ -8,7 +8,7 @@ from app.services.openlibrary import OpenLibraryAPI
 
 @pytest.mark.asyncio
 async def test_fetch_data_valid_request():
-    """Test fetching data from a valid Open Library API endpoint."""
+    """Test fetching data using /search.json method."""
     service = OpenLibraryAPI()
     async with httpx.AsyncClient() as client:
         url = f"{service.base_url}/search.json?q=Harry Potter&limit=1"
@@ -43,7 +43,7 @@ async def test_search_books_by_subject_fantasy():
     service = OpenLibraryAPI()
     results = await service.search(query="", subject="fantasy")
     pprint(results.keys())
-    
+
     for key in results.keys():
         pprint(key)
 
