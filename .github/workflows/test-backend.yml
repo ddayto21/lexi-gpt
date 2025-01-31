@@ -11,12 +11,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      backend:
-        image: backend-app:latest
-        ports:
-          - 8000:8000
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,4 +31,3 @@ jobs:
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
-
