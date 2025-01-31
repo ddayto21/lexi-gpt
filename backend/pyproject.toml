@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = "Backend service"
+authors = ["Daniel Dayto <danielcdayto@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [{ include = "backend" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+fastapi = ">=0.115,<0.120"
+httpx = ">=0.28,<0.30"
+uvicorn = ">=0.34,<0.40"
+pydantic = ">=2.10,<3"
+numpy = ">=2.2,<3"
+pandas = ">=2.2,<3"
+torch = ">=2.5,<3"
+scikit-learn = ">=1.6,<2"
+transformers = ">=4.48,<5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.3,<9"
+pytest-asyncio = ">=0.25,<1"
+black = ">=24,<25"
+mypy = ">=1.10,<2"
+ruff = ">=0.1,<1"
+watchdog = ">=3.0,<4"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
