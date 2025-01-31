@@ -14,7 +14,7 @@ const App: React.FC = () => {
       const results = await searchBySubjects(query);
       setBooks(results.docs || []);
     } catch (err) {
-      setError("Failed to fetch books. Please try again.");
+      setError(`Failed to fetch books: ${err} Please try again.`);
     }
   };
 
