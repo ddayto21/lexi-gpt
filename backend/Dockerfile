@@ -11,13 +11,14 @@ ENV PYTHONUNBUFFERED=1 \
 # Install system dependencies and Poetry, then clean up
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     curl -sSL https://install.python-poetry.org | python3 - && \
-    export PATH="$HOME/.local/bin:$PATH"
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry && \
+    apt-get remove -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
 # Copy dependency files first (leveraging Docker layer caching)
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
 
 # Install dependencies (only main)
 RUN /root/.local/bin/poetry install --only main --no-interaction --no-ansi
