@@ -28,6 +28,3 @@ jobs:
             curl --silent --fail http://localhost:8000/health && break
             sleep 2
           done
-
-      - name: Install dependencies
-        run: poetry install --no-interaction --no-ansi
