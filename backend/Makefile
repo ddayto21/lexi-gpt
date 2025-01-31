@@ -34,7 +34,30 @@ deploy:
 	docker push $(IMAGE_URI)
 	@echo "$(GREEN)✅ Image pushed to ECR successfully!$(RESET)"
 
-# Invoke the Lambda function with a valid payload
+# ✅ Update AWS Lambda function with the latest image
+update-lambda:
+	@$(call print-separator)
+	@echo "$(YELLOW)🔄 Updating AWS Lambda function: $(ECR_REPO_NAME)$(RESET)"
+	aws lambda update-function-code \
+		--function-name $(ECR_REPO_NAME) \
+		--image-uri $(IMAGE_URI)
+	@echo "$(GREEN)✅ AWS Lambda function updated successfully!$(RESET)"
+
+		
+deploy-lambda: deploy update-lambda
+	@$(call print-separator)
+	@echo "$(YELLOW)🚀 Invoking AWS Lambda function to verify deployment...$(RESET)"
+	aws lambda invoke --function-name $(ECR_REPO_NAME) response.json
+	@echo "$(GREEN)✅ Lambda function invoked successfully!$(RESET)"
+
+	@$(call print-separator)
+	@echo "$(YELLOW)📄 Printing Lambda response...$(RESET)"
+	cat response.json | jq .
+	@echo "$(GREEN)✅ Response printed successfully!$(RESET)"
+
+	@echo "$(GREEN)🎉 Deployment to AWS Lambda completed successfully!$(RESET)"
+
+# ✅ Invoke the Lambda function with a valid payload
 invoke-lambda:
 	@$(call print-separator)
 	@echo "$(YELLOW)🚀 Invoking AWS Lambda function with a valid payload...$(RESET)"
@@ -65,19 +88,6 @@ invoke-lambda:
 	@echo "$(YELLOW)📄 Printing Lambda response...$(RESET)"
 	cat response.json | jq .
 	@echo "$(GREEN)✅ Response printed successfully!$(RESET)"
-		
-deploy-lambda: deploy update-lambda
-	@$(call print-separator)
-	@echo "$(YELLOW)🚀 Invoking AWS Lambda function to verify deployment...$(RESET)"
-	aws lambda invoke --function-name $(ECR_REPO_NAME) response.json
-	@echo "$(GREEN)✅ Lambda function invoked successfully!$(RESET)"
-
-	@$(call print-separator)
-	@echo "$(YELLOW)📄 Printing Lambda response...$(RESET)"
-	cat response.json | jq .
-	@echo "$(GREEN)✅ Response printed successfully!$(RESET)"
-
-	@echo "$(GREEN)🎉 Deployment to AWS Lambda completed successfully!$(RESET)"
 
 # Run container locally
 run-container:
