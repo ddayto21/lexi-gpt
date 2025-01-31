@@ -4,16 +4,15 @@ import pytest
 import pytest_asyncio
 import time
 import httpx
-from pprint import pprint
+import os
 
 
 @pytest.fixture(scope="session")
 def base_url():
     """
-    The base URL where your FastAPI app is running.
-    Adjust the host/port as needed.
+    The base URL where the FastAPI app is running inside the container.
     """
-    return "http://localhost:8000"
+    return os.getenv("API_URL", "http://localhost:8000")
 
 
 @pytest_asyncio.fixture
