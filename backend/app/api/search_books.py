@@ -53,7 +53,7 @@ async def search_books(request: SearchBooksRequest):
 
 def contains_profanity(query: str) -> bool:
     # Minimal profanity check (example)
-    prohibited_words = ["badword"]  # You decide what is "profanity"
+    prohibited_words = ["badword"]
     return any(word in query.lower() for word in prohibited_words)
 
 
