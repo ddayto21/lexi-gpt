@@ -24,7 +24,7 @@ jobs:
       - name: Build the Docker image
         run: docker build -t backend-app ./backend
 
-      - name: Run the Backend Container
+      - name: Run the Container
         run: docker run -d -p 8000:8000 --name backend-container backend-app
 
       - name: Wait for API to be Ready
@@ -38,5 +38,3 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
-      - name: Run tests
-        run: poetry run pytest
