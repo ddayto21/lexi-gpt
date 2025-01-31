@@ -11,8 +11,11 @@ import os
 def base_url():
     """
     The base URL where the FastAPI app is running inside the container.
+    Uses API_URL from environment variables, defaults to localhost.
     """
-    return os.getenv("API_URL", "http://localhost:8000")
+    url = os.getenv("API_URL", "http://localhost:8000")
+    print(f"Using API base URL: {url}")  
+    return url
 
 
 @pytest_asyncio.fixture

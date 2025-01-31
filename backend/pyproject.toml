@@ -18,6 +18,7 @@ pandas = ">=2.2,<3"
 torch = ">=2.5,<3"
 scikit-learn = ">=1.6,<2"
 transformers = ">=4.48,<5"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3,<9"
