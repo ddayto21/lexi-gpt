@@ -3,10 +3,10 @@ import pytest
 import pytest_asyncio
 import httpx
 
-if os.getenv("CI", "false").lower() == "true":
-    pytest.skip("Skipping integration tests in CI environment", allow_module_level=True)
 
-
+if not os.getenv("INTERNAL_API_KEY"):
+    pytest.skip("Skipping LLM integration tests: INTERNAL_API_KEY not set", allow_module_level=True)
+    
 @pytest.fixture(scope="session")
 def base_url():
     """
