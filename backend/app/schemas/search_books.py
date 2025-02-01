@@ -1,18 +1,17 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-
-class SearchBooksRequest(BaseModel):
-    query: str
-
-
 class Book(BaseModel):
     title: str
     authors: List[str]
-    description: str
+    description: Optional[str] = None
 
 
-class SearchBooksResponse(BaseModel):
+
+class SearchRequest(BaseModel):
+    query: str
+
+class SearchResponse(BaseModel):
     recommendations: List[Book]
     message: Optional[str] = None
 

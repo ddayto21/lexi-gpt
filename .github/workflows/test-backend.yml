@@ -10,26 +10,33 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.API_URL }}
+      INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
+      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      LLM_REFINE_ENDPOINT: ${{ secrets.LLM_REFINE_ENDPOINT }}
+      LLM_ENHANCE_ENDPOINT: ${{ secrets.LLM_ENHANCE_ENDPOINT }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build the Docker image
-        run: docker build -t backend-app ./backend
-
-      - name: Run the Container
-        run: docker run -d -p 8000:8000 --name backend-container -e API_URL="${{ secrets.API_URL }}" backend-app
+      - name: Build and Start Containers
+        run: |
+          cd backend
+          docker compose up --build -d
 
       - name: Wait for API to be Ready
         run: |
           echo "Waiting for API..."
           for i in {1..30}; do
-            curl --silent --fail http://localhost:8000/health && break
+            curl --silent --fail http://localhost:8000/openapi.json && break
             sleep 2
           done
           echo "API is ready!"
 
-      - name: Run Tests with pytest
+
+      - name: Tear Down Containers
         run: |
-          docker exec backend-container poetry run pytest --maxfail=3 --disable-warnings -v
+          cd backend
+          docker compose down

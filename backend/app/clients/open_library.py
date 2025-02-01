@@ -86,3 +86,4 @@ class OpenLibraryAPI:
                 "works": results[5],
                 "editions": results[6],
             }
+            
