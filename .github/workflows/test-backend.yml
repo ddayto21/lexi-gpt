@@ -24,7 +24,7 @@ jobs:
       - name: Build and Start Containers
         run: |
           cd backend
-          docker-compose up --build -d
+          docker compose up --build -d
 
       - name: Wait for API to be Ready
         run: |
@@ -43,4 +43,4 @@ jobs:
       - name: Tear Down Containers
         run: |
           cd backend
-          docker-compose down
+          docker compose down
