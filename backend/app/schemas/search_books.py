@@ -4,7 +4,8 @@ from typing import List, Optional
 class Book(BaseModel):
     title: str
     authors: List[str]
-    description: str
+    description: Optional[str] = None
+
 
 
 class SearchRequest(BaseModel):
