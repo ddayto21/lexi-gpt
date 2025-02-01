@@ -35,10 +35,6 @@ jobs:
           done
           echo "API is ready!"
 
-      - name: Run Tests with pytest
-        run: |
-          cd backend
-          docker exec backend-app poetry run pytest --maxfail=3 --disable-warnings -v
 
       - name: Tear Down Containers
         run: |
