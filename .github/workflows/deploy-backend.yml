@@ -17,18 +17,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Install AWS CLI
       - name: Install AWS CLI
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
-          sudo ./aws/install
+          sudo ./aws/install --update
 
-      # Step 3: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -36,14 +33,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Step 4: Log in to Amazon ECR
-      - name: Authenticate Docker to ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-            | docker login --username AWS --password-stdin \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
 
-      # Step 5: Build the Docker image (amd64)
       - name: Build Docker image
         working-directory: ./backend
         run: |
@@ -53,23 +45,12 @@ jobs:
             -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest \
             --load .
 
-      # Step 6: Tag the Docker image with ECR registry/repo
       - name: Tag Docker image
         working-directory: ./backend
-        run: |
-          docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:latest \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+        run: docker tag book-search-backend-service:latest 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
 
-      # Step 7: Push the image to ECR
       - name: Push Docker image
-        run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
-
-      # Step 8: Force a new deployment in ECS
+        run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
+        
       - name: Update ECS Service
-        run: |
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
-            --service ${{ secrets.ECS_SERVICE_NAME }} \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
+        run: aws ecs update-service --cluster book-search-service-cluster --service book-search-backend-service --force-new-deployment --region us-east-2
