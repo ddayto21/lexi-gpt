@@ -52,13 +52,5 @@ jobs:
       - name: Push Docker image
         run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
         
-      - name: Debug ECS Variables
-        run: |
-          echo "Cluster: '${{ secrets.ECS_CLUSTER_NAME }}'"
-          echo "Service: '${{ secrets.ECS_SERVICE_NAME }}'"
-          echo "Region: '${{ secrets.AWS_REGION }}'"
       - name: Update ECS Service
-        run: >
-          aws ecs update-service --cluster "${{ secrets.ECS_CLUSTER_NAME }}" --service "${{ secrets.ECS_SERVICE_NAME }}" --force-new-deployment --region "${{ secrets.AWS_REGION }}"
-      - name: Update ECS Service
-        run: aws ecs update-service --cluster "${{ secrets.ECS_CLUSTER_NAME }}" --service "${{ secrets.ECS_SERVICE_NAME }}" --force-new-deployment --region "${{ secrets.AWS_REGION }}"
+        run: aws ecs update-service --cluster book-search-service-cluster --service book-search-backend-service --force-new-deployment --region us-east-2
