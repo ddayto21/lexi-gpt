@@ -53,4 +53,4 @@ jobs:
         run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
 
       - name: Update ECS Service
-        run: aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_NAME }} --force-new-deployment --region ${{ secrets.AWS_REGION }}
+        run: aws ecs update-service --cluster "${{ secrets.ECS_CLUSTER_NAME }}" --service "${{ secrets.ECS_SERVICE_NAME }}" --force-new-deployment --region "${{ secrets.AWS_REGION }}"
