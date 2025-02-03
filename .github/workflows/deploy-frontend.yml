@@ -3,11 +3,12 @@ name: Deploy to AWS Amplify
 on:
   push:
     branches:
-      - main  
-  # Trigger deployment when a PR is merged into main
+      - main
+    paths:
+      - "frontend/**"
   pull_request:
     branches:
-      - main 
+      - main
     paths:
       - "frontend/**"
 
@@ -16,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Check out the code
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -33,12 +34,30 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2  
+          aws-region: us-east-2
 
-      # Step 4: Deploy to AWS Amplify
+      # Step 4: Deploy to AWS Amplify with error handling
       - name: Trigger AWS Amplify deployment
         run: |
-          aws amplify start-job \
+          set +e
+          # Attempt the start-job command and capture output
+          output=$(aws amplify start-job \
             --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
             --branch-name main \
-            --job-type RELEASE
+            --job-type RELEASE 2>&1)
+          status=$?
+          set -e
+
+          # If the command failed, check if it's because a job is already running
+          if [ $status -ne 0 ]; then
+            echo "$output"
+            # Look for LimitExceededException in the output
+            if echo "$output" | grep -q "LimitExceededException"; then
+              echo "A pending or running job already exists for this branch. Skipping new deployment."
+              exit 0
+            else
+              exit $status
+            fi
+          fi
+
+      # You can add more steps if needed, e.g. notify a slack channel, etc.
