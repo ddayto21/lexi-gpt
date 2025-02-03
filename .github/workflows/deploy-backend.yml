@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout source code
         uses: actions/checkout@v3
 
       - name: Install AWS CLI
@@ -52,5 +52,5 @@ jobs:
       - name: Push Docker image
         run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
         
-      - name: Update ECS Service
-        run: aws ecs update-service --cluster ecs-cluster-book-search --service ecs-service-book-search --force-new-deployment --region us-east-2
+      - name: Update the ECS Service
+        run: aws ecs update-service --cluster ecs-cluster-fast-api--cluster --service rest-api-load-balancer-service --force-new-deployment --region us-east-2
