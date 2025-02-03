@@ -28,12 +28,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           placeholder="Describe a book you're interested in reading..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()} // Attach handleSubmit directly here
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()} 
+
           style={styles.searchInput}
         />
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting} // Disable button while submitting
+          disabled={isSubmitting} 
           style={styles.sendButton}
         >
           ⬆️

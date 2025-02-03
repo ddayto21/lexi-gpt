@@ -1,25 +1,24 @@
-import type { Book } from "../../types/api";
+// frontend/src/services/api.ts
+import type { SearchRequest, SearchResponse } from "../../types/api";
 
-const BASE_URL = "http://localhost:8000";
+export async function searchBooks(query: string): Promise<SearchResponse> {
+  console.log(`Searching for books with query: ${query}`);
+  const payload: SearchRequest = { query };
 
-/**
- * Fetch book recommendations based on a natural language query.
- * @param {string} query - The user's search query.
- * @returns {Promise<object>} - The response data containing book recommendations.
- */
-export const searchBooks = async (query: string): Promise<Book[]> => {
-  const response = await fetch(`${BASE_URL}/search-books`, {
+  const response = await fetch("http://0.0.0.0:8000/search_books", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || "Failed to fetch books.");
+    throw new Error(`Failed to fetch. Status: ${response.status}`);
   }
 
-  return response.json();
-};
+  const data: SearchResponse = await response.json();
+  console.log("Raw JSON from backend:", data);
+  // { recommendations: [ { title: "...", authors: [...], description: "..." } ] }
+  return data;
+}
