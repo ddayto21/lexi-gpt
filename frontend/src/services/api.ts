@@ -1,6 +1,6 @@
 import type { SearchRequest, SearchResponse } from "../../types/api";
 
-const BASE_URL = "http://18.219.50.112:8000"
+const BASE_URL = "http://ecs-load-balancer-fast-api-new-1744878951.us-east-2.elb.amazonaws.com"
 
 export async function searchBooks(query: string): Promise<SearchResponse> {
   console.log(`Searching for books with query: ${query}`);

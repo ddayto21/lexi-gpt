@@ -9,18 +9,15 @@ from app.clients.open_library import OpenLibraryAPI
 from app.clients.llm_client import LLMClient
 from dotenv import load_dotenv
 
-# Load environment variables from .env
+
 load_dotenv()
 
-# Create a FastAPI application instance
 app = FastAPI(redirect_slashes=False)
 
-# Configure CORS middleware to allow the frontend (Amplify & localhost) to call this API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://main.d2hvd5sv2imel0.amplifyapp.com",
-        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
@@ -44,7 +41,7 @@ def get_redis_client():
 
         return DummyRedis()
 
-# Create a Redis client (or a dummy client if unavailable)
+
 redis_client = get_redis_client()
 
 
