@@ -52,5 +52,5 @@ jobs:
       - name: Push Docker image
         run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
         
-      - name: Update ECS Service
+      - name: Update the ECS Service
         run: aws ecs update-service --cluster ecs-cluster-book-search --service ecs-service-book-search --force-new-deployment --region us-east-2
