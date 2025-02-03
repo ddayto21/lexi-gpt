@@ -47,7 +47,7 @@ jobs:
 
       - name: Tag Docker image
         working-directory: ./backend
-        run: docker tag "${{ secrets.ECR_REPOSITORY_NAME }}:latest" "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest"
+        run: docker tag book-search-backend-service:latest 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
 
       - name: Push Docker image
         run: |
