@@ -3,138 +3,151 @@
 import re
 from typing import List, Dict, Any
 from app.clients.open_library import OpenLibraryAPI
+from transformers import pipeline
 
 class LLMClient:
     """
-    1. Removes stopwords (basic text cleanup).
-    2. Extracts keywords (genre, place, etc.) from the user's query (Step 1: Query Understanding).
-    3. Uses OpenLibraryAPI to search for relevant books (Step 2: Query Generation).
-       - e.g., "mystery novel set in Paris" -> "subject:mystery place:paris"
-    4. (Step 3, Summaries) is not fully implemented here, focusing on step 1 & 2 for now.
+    This client implements a pipeline to process a user's query into a refined
+    search string by integrating several pre-trained models:
+      1. Preprocessing: Normalize the input text.
+      2. Entity Extraction: Use a NER pipeline to extract locations (and other entities if needed).
+      3. Intent & Genre Detection: Use a zero-shot classifier to detect likely genres.
+      4. Query Refinement: Use a text-generation pipeline to expand/refine the query.
     """
 
+    # A simple set of stopwords used for additional cleanup.
     STOPWORDS = {"the", "is", "of", "and", "a", "in", "set"}
 
-    # A simple genre dictionary to detect some common genres
-    GENRES = {
-        "mystery": "mystery",
-        "romance": "romance",
-        "fantasy": "fantasy",
-        "science-fiction": "science fiction",
-        "sci-fi": "science fiction",
-        "thriller": "thriller",
-        "horror": "horror",
-        "historical": "historical",
-        "novel": "novel"
-    }
-
-    # A naive place dictionary for demonstration
-    PLACES = {
-        "paris": "paris",
-        "istanbul": "istanbul",
-        "rome": "rome",
-        "tokyo": "tokyo"
-    }
+    # A list of candidate genre labels for the classifier.
+    GENRE_CANDIDATES = [
+        "mystery",
+        "romance",
+        "fantasy",
+        "science fiction",
+        "thriller",
+        "horror",
+        "historical",
+        "novel",
+        "biography",
+        "non-fiction",
+        "self-help",
+        "young adult",
+        "children",
+        "poetry",
+        "drama",
+        "adventure"
+    ]
 
     def __init__(self):
-        # We’ll make direct calls to OpenLibraryAPI
+        # Initialize the OpenLibrary API client.
         self.open_library = OpenLibraryAPI()
+        
+        # Load Hugging Face pipelines.
+        # NER pipeline to extract location-related entities.
+        self.ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy="simple")
+        
+        # Zero-shot classification to detect genres from the query.
+        self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        
+        # Text-to-text generation for query expansion/refinement.
+        # Here, T5 is used; you could replace it with another generation model if desired.
+        self.text_generator = pipeline("text2text-generation", model="t5-small")
 
-    def _basic_nlp_cleanup(self, text: str) -> List[str]:
+    def _basic_nlp_cleanup(self, text: str) -> str:
         """
-        1) Lowercases
-        2) Splits on whitespace
-        3) Removes a small set of stopwords
-        Returns a list of tokens
+        Normalize the input text by stripping extra whitespace, lowercasing,
+        and removing stopwords.
         """
-        tokens = text.lower().split()
-        filtered = [t for t in tokens if t not in self.STOPWORDS]
-        return filtered
+        text = text.strip().lower()
+        tokens = text.split()
+        filtered_tokens = [t for t in tokens if t not in self.STOPWORDS]
+        return " ".join(filtered_tokens)
 
-    def _extract_keywords(self, tokens: List[str]) -> Dict[str, Any]:
+    def _extract_entities_and_intent(self, text: str) -> Dict[str, Any]:
         """
-        Extracts simple fields from tokens: genre(s), place(s), etc.
-
-        e.g. "mystery novel set in paris" -> 
-            genre: "mystery", "novel"
-            place: "paris"
+        Uses the NER pipeline to extract location-related entities and
+        the zero-shot classifier to determine likely genres (intent).
+        Returns a dict with potential genres and places.
         """
-        found_genres = []
-        found_places = []
-        leftover_tokens = []
+        # Run NER to extract entities (we filter for location-related entities)
+        ner_results = self.ner_pipeline(text)
+        places = []
+        for entity in ner_results:
+            # The 'entity_group' can be LOC or GPE (geo-political entity)
+            if entity["entity_group"] in ["LOC", "GPE"]:
+                places.append(entity["word"].lower())
+        places = list(set(places))  # deduplicate
 
-        for t in tokens:
-            if t in self.GENRES:
-                found_genres.append(self.GENRES[t])  # e.g. 'mystery'
-            elif t in self.PLACES:
-                found_places.append(self.PLACES[t])  # e.g. 'paris'
-            else:
-                leftover_tokens.append(t)
+        # Run zero-shot classification on the original text for genre detection.
+        classification = self.classifier(text, candidate_labels=self.GENRE_CANDIDATES)
+        # Pick the top label if its score is high enough (threshold can be tuned)
+        top_genre = classification["labels"][0] if classification["scores"][0] > 0.5 else None
+        genres = [top_genre] if top_genre else []
 
         return {
-            "genres": list(set(found_genres)),  # deduplicate
-            "places": list(set(found_places)),
-            "leftover": leftover_tokens
+            "genres": genres,
+            "places": places
         }
 
-    def _build_openlibrary_query(self, keywords: Dict[str, Any]) -> str:
+    def _refine_query(self, original_text: str, extracted: Dict[str, Any]) -> str:
         """
-        Builds a final search string for Open Library based on extracted keywords.
-        For instance:
-          subject:mystery place:paris leftover tokens -> "subject:mystery place:paris leftover1 leftover2"
+        Combines the original text with the extracted entities and genres,
+        and then uses a text-generation model to expand the query into a refined search string.
+        If the generated output contains extra debugging text, the method falls back
+        to simply returning the cleaned original query plus any extracted keywords.
         """
-        parts = []
+        # Build a prompt that informs the model what to do.
+        prompt = (
+            f"Refine the following book search query by including additional relevant keywords "
+            f"based on the detected genre and location. \n\n"
+            f"Original Query: '{original_text}'\n"
+            f"Detected Genre(s): {', '.join(extracted.get('genres', [])) if extracted.get('genres') else 'None'}\n"
+            f"Detected Place(s): {', '.join(extracted.get('places', [])) if extracted.get('places') else 'None'}\n\n"
+            f"Refined Query:"
+        )
+        # Generate the refined query.
+        generated = self.text_generator(prompt, max_length=50, num_return_sequences=1)
+        refined = generated[0]['generated_text'].strip()
 
-        # Add each found genre as subject
-        if keywords["genres"]:
-            for g in keywords["genres"]:
-                parts.append(f"subject:{g}")
+        # If the generated text contains extra debugging info, fallback to a simple approach.
+        if not refined or "Detected Place(s):" in refined or "Original Query:" in refined:
+            parts = []
+            for genre in extracted.get("genres", []):
+                parts.append(f"subject:{genre}")
+            for place in extracted.get("places", []):
+                parts.append(f"place:{place}")
+            parts.append(original_text)
+            refined = " ".join(parts)
 
-        # Add each found place
-        if keywords["places"]:
-            for p in keywords["places"]:
-                parts.append(f"place:{p}")
-
-        # Add leftover tokens at the end
-        if keywords["leftover"]:
-            parts.extend(keywords["leftover"])
-
-        # Join them with spaces. 
-        # Example: "subject:mystery place:paris novel"
-        return " ".join(parts)
+        return refined
 
     async def process_query(self, user_query: str):
         """
-        Step 1: Parse & Extract Keywords
-        Step 2: Build an OpenLibrary query
-        Step 2 (cont’d): Use the OpenLibraryAPI to fetch relevant books
-        Step 3: Summarize each book (placeholder - focusing on Step 2 for now).
+        Pipeline Flow:
+          1. Preprocess the query.
+          2. Extract entities (locations) and intent (genre).
+          3. Use the extracted info to refine and expand the query.
+          4. Use the refined query to fetch data from the OpenLibrary API.
+        Returns a tuple of (refined_query, enhanced_books).
         """
-        # 1. Basic cleanup
-        tokens = self._basic_nlp_cleanup(user_query)
-
-        # 2. Extract keywords
-        extracted = self._extract_keywords(tokens)
-        # e.g. {"genres":["mystery"], "places":["paris"], "leftover":["novel"]}
-
-        # 3. Build final OL query
-        refined_query = self._build_openlibrary_query(extracted)
-        # e.g. "subject:mystery place:paris novel"
-
-        # 4. Fetch data from OpenLibrary
+        # 1. Preprocessing: Normalize the input text.
+        cleaned_text = self._basic_nlp_cleanup(user_query)
+        
+        # 2. Entity Extraction & Intent Detection:
+        extracted = self._extract_entities_and_intent(cleaned_text)
+        
+        # 3. Query Refinement:
+        refined_query = self._refine_query(cleaned_text, extracted)
+        
+        # 4. Fetch data from OpenLibrary using the refined query.
         search_results = await self.open_library.search(refined_query)
-        # search_results -> a dict with "docs" etc.
-
-        # For demonstration, just returning the raw search results under 'enhanced_books'.
-        # Step 3 (Summaries) could parse these and produce a summary.
         enhanced_books = search_results.get("docs", [])
 
-        # Return the "refined" OL query plus the raw docs as "enhanced_books"
         return refined_query, enhanced_books
 
     async def close(self):
         """
-        No external client or resource to close here, but we keep this 
-        to maintain consistency if other code awaits LLMClient.close().
+        Placeholder for closing any resources. Currently, there are no
+        persistent connections to close.
         """
         pass
