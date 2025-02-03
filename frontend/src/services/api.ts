@@ -1,4 +1,3 @@
-// frontend/src/services/api.ts
 import type { SearchRequest, SearchResponse } from "../../types/api";
 
 const BASE_URL = "http://18.219.50.112:8000"
