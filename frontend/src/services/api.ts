@@ -1,11 +1,13 @@
 // frontend/src/services/api.ts
 import type { SearchRequest, SearchResponse } from "../../types/api";
 
+const BASE_URL = "http://18.219.50.112:8000"
+
 export async function searchBooks(query: string): Promise<SearchResponse> {
   console.log(`Searching for books with query: ${query}`);
   const payload: SearchRequest = { query };
 
-  const response = await fetch("http://0.0.0.0:8000/search_books", {
+  const response = await fetch(`${BASE_URL}/search_books`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
