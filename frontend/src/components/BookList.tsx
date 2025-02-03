@@ -14,9 +14,6 @@ export const BookList: React.FC<BookListProps> = ({ books }) => {
           <p>
             <strong>Author:</strong> {book.author_name?.join(", ") || "N/A"}
           </p>
-          <p>
-            <strong>First Published:</strong> {book.first_publish_year || "N/A"}
-          </p>
         </div>
       ))}
     </div>
