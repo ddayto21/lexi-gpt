@@ -1,59 +1,56 @@
-from fastapi import APIRouter, Request, HTTPException, Depends, Security, Body
-from fastapi.security.api_key import APIKeyHeader
-import os
+# app/api/routes.py
 
+from fastapi import APIRouter, Request, HTTPException
 from app.schemas.search_books import SearchRequest, SearchResponse
 from app.services.book_processor import process_results
 from app.services.profanity import contains_profanity
+import json
+import redis
 
+def get_redis_client():
+    try:
+        client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+        client.ping()
+        return client
+    except redis.exceptions.ConnectionError:
+
+        class DummyRedis:
+            def get(self, key):
+                return None
+            def setex(self, key, ttl, value):
+                pass
+
+        return DummyRedis()
+
+redis_client = get_redis_client()
 public_router = APIRouter()
 
 @public_router.post("/search_books", response_model=SearchResponse)
 async def search_books(request: Request, payload: SearchRequest):
-    if contains_profanity(payload.query):
-        raise HTTPException(
-            status_code=403,
-            detail="The Book Search service is moderated and does not allow for profanity.",
-        )
+    print("/search_books endpoint called")
+    query = payload.query.strip().lower()
+    print(f"Received query: {query}")
 
-    # Call the LLM to refine the query
-    refined_query = await request.app.state.llm_client.refine_query(payload.query)
-    # Search OpenLibrary using the refined query
-    results = await request.app.state.open_library_client.search(refined_query)
-    # Process the raw search results into a list of book dicts
-    books_data = process_results(results)
-    # Enhance the book data with the LLM
-    enhanced_data = await request.app.state.llm_client.enhance_book_descriptions(books_data)
+    if contains_profanity(query):
+        raise HTTPException(status_code=403, detail="Profanity is not allowed.")
 
-    return SearchResponse(recommendations=enhanced_data)
+    # 1) Check Redis cache
+    cached_results = redis_client.get(f"books:{query}")
+    if cached_results:
+        # The cache should store already-processed results
+        return SearchResponse(recommendations=json.loads(cached_results))
 
-# Security dependency for internal endpoints
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
+    llm_client = request.app.state.llm_client
 
-def get_api_key(api_key: str = Security(api_key_header)):
-    if api_key != os.getenv("INTERNAL_API_KEY"):
-        raise HTTPException(status_code=403, detail="Not authorized")
-    return api_key
+    # 2) The LLM client returns (refined_query, raw_docs)
+    refined_query, raw_docs = await llm_client.process_query(query)
 
-internal_router = APIRouter()
+    # 4) Process the raw docs into proper shape (title, authors, description)
+    processed_books = process_results({"docs": raw_docs})
+    print("processed_books:", processed_books)
 
-@internal_router.post("/llm/refine", dependencies=[Depends(get_api_key)])
-async def refine_query_endpoint(payload: dict = Body(...)):
-    """
-    Expects a JSON payload like: {"query": "some query"}
-    For now, returns a simple refined query.
-    """
-    query = payload.get("query")
-    if not query:
-        raise HTTPException(status_code=400, detail="Missing 'query' field")
-    # In a real scenario, call the LLM service logic here.
-    return {"refined_query": f"{query} refined"}
+    # 5) Cache the processed results
+    redis_client.setex(f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books]))
 
-@internal_router.post("/llm/enhance", dependencies=[Depends(get_api_key)])
-async def enhance_books_endpoint(books: list = Body(...)):
-    """
-    Expects a bare JSON array (list) of books.
-    For now, simply returns them wrapped in an "enhanced_books" key.
-    """
-    # In a real scenario, enhance the books data using the LLM.
-    return {"enhanced_books": books}
+    # 6) Return books in correct shape for SearchResponse
+    return SearchResponse(recommendations=processed_books)

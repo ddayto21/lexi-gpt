@@ -7,7 +7,6 @@ class Book(BaseModel):
     description: Optional[str] = None
 
 
-
 class SearchRequest(BaseModel):
     query: str
 

@@ -4,7 +4,7 @@ info:
   version: "1.0.0"
   description: >
     The Book Search API provides a RESTful interface for searching books using natural language queries.
-    The service leverages an internal LLM to refine user queries and enhance retrieved book data from OpenLibrary.
+    The service leverages an LLM to refine user queries and enhance retrieved book data from OpenLibrary.
     It is optimized for low latency (1-3 seconds response time).
   license:
     name: MIT
@@ -18,16 +18,11 @@ servers:
 paths:
   /search-books:
     post:
-      security:
-        - ApiKeyAuth: []
-      operationId: searchBooks
       summary: Search Books
       description: >
-        Processes a natural language query to search for books. The query is first refined by an internal LLM 
-        before being used to retrieve data from OpenLibrary. The response contains recommended books and may include 
-        a moderation message if inappropriate language is detected.
+        Processes a natural language query to search for books. The query is refined using an LLM 
+        before retrieving data from OpenLibrary. The response contains recommended books.
       requestBody:
-        description: The search request payload.
         required: true
         content:
           application/json:
@@ -40,14 +35,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SearchBooksResponse"
-        "400":
-          description: Invalid request parameters.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         "403":
-          description: Request forbidden due to moderated content or missing/invalid API key.
+          description: Request forbidden due to moderated content.
           content:
             application/json:
               schema:
@@ -59,110 +48,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /llm/refine:
-    post:
-      operationId: refineQuery
-      summary: Refine Query (Internal)
-      description: >
-        Refines a natural language query using an internal LLM service. This endpoint is intended for internal use 
-        and requires a valid API key.
-      tags:
-        - Internal
-      x-internal: true
-      security:
-        - ApiKeyAuth: []
-      requestBody:
-        description: The query payload to be refined.
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                query:
-                  type: string
-                  description: The original natural language query.
-              required:
-                - query
-      responses:
-        "200":
-          description: A successful response containing the refined query.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  refined_query:
-                    type: string
-                    description: The refined query.
-        "400":
-          description: Invalid request parameters.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: An internal error occurred during query refinement.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /llm/enhance:
-    post:
-      operationId: enhanceBooks
-      summary: Enhance Book Descriptions (Internal)
-      description: >
-        Enhances book descriptions using an internal LLM service. This endpoint is intended for internal use 
-        and requires a valid API key.
-      tags:
-        - Internal
-      x-internal: true
-      security:
-        - ApiKeyAuth: []
-      requestBody:
-        description: A payload containing an array of books to enhance.
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                books:
-                  type: array
-                  description: List of books to enhance.
-                  items:
-                    $ref: "#/components/schemas/Book"
-              required:
-                - books
-      responses:
-        "200":
-          description: A successful response containing enhanced book descriptions.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  enhanced_books:
-                    type: array
-                    description: List of enhanced book objects.
-                    items:
-                      $ref: "#/components/schemas/Book"
-        "500":
-          description: An internal error occurred during book enhancement.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
 components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API key required for internal endpoints.
-      
   schemas:
     SearchBooksRequest:
       type: object
@@ -181,51 +67,23 @@ components:
           description: An array of recommended books.
           items:
             $ref: "#/components/schemas/Book"
-        message:
-          type: string
-          description: Optional message regarding moderated content.
-      example:
-        recommendations:
-          - title: "Example Book Title"
-            authors:
-              - "Author One"
-              - "Author Two"
-            description: "A brief description of the book."
-        message: ""
 
     Book:
       type: object
       properties:
         title:
           type: string
-          description: The title of the book.
         authors:
           type: array
-          description: List of authors.
           items:
             type: string
         description:
           type: string
-          description: A summary or description of the book.
-      required:
-        - title
-        - authors
-        - description
 
     Error:
       type: object
       properties:
         code:
-          oneOf:
-            - type: string
-            - type: integer
-          description: The error code.
+          type: integer
         message:
           type: string
-          description: A descriptive error message.
-      required:
-        - code
-        - message
-      example:
-        code: 400
-        message: "Invalid request parameter."
