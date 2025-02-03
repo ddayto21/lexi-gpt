@@ -13,10 +13,12 @@ const App: React.FC = () => {
     try {
       const data = await searchBooks(query);
       setBooks(data.recommendations || []);
-    } catch (err: any) {
-      setError(
-        `Failed to fetch books: ${err?.message || err}. Please try again.`
-      );
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(`Failed to fetch books: ${err.message}. Please try again.`);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     }
   };
 
@@ -59,7 +61,8 @@ const styles: { [key: string]: CSSProperties } = {
     backgroundColor: "#0d0d0d",
     color: "#f0f0f0",
     fontFamily: "Inter, sans-serif",
-    overflow: "hidden", // Prevents unwanted body scrolling
+    // Prevents unwanted body scrolling
+    overflow: "hidden",
   },
   title: {
     fontSize: "24px",
@@ -70,7 +73,7 @@ const styles: { [key: string]: CSSProperties } = {
   searchBarWrapper: {
     position: "sticky",
     top: "0",
-    zIndex: 10, 
+    zIndex: 10,
     backgroundColor: "#0d0d0d",
     width: "100%",
     display: "flex",
@@ -85,7 +88,7 @@ const styles: { [key: string]: CSSProperties } = {
     flex: 1,
     width: "100%",
     maxWidth: "600px",
-    overflowY: "auto", 
+    overflowY: "auto",
     paddingTop: "10px",
   },
   bookCard: {
