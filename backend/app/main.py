@@ -16,7 +16,7 @@ app = FastAPI(redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["https://main.d2hvd5sv2imel0.amplifyapp.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -26,7 +26,7 @@ app.add_middleware(
 def get_redis_client():
     try:
         client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
-        client.ping()  
+        client.ping()
         return client
     except redis.exceptions.ConnectionError:
 
@@ -46,7 +46,7 @@ redis_client = get_redis_client()
 @app.on_event("startup")
 async def startup_event():
     app.state.open_library_client = OpenLibraryAPI()
-    app.state.llm_client = LLMClient() 
+    app.state.llm_client = LLMClient()
     app.state.redis_client = redis_client
 
 
