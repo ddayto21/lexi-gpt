@@ -7,6 +7,7 @@ from app.services.profanity import contains_profanity
 import json
 import redis
 
+
 def get_redis_client():
     try:
         client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
@@ -17,17 +18,20 @@ def get_redis_client():
         class DummyRedis:
             def get(self, key):
                 return None
+
             def setex(self, key, ttl, value):
                 pass
 
         return DummyRedis()
 
-redis_client = get_redis_client()
-public_router = APIRouter()
 
-@public_router.post("/search_books", response_model=SearchResponse)
+redis_client = get_redis_client()
+router = APIRouter()
+
+
+@router.post("/search_books", response_model=SearchResponse)
 async def search_books(request: Request, payload: SearchRequest):
-    print("/search_books endpoint called")
+
     query = payload.query.strip().lower()
     print(f"Received query: {query}")
 
@@ -50,7 +54,9 @@ async def search_books(request: Request, payload: SearchRequest):
     print("processed_books:", processed_books)
 
     # 5) Cache the processed results
-    redis_client.setex(f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books]))
+    redis_client.setex(
+        f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books])
+    )
 
     # 6) Return books in correct shape for SearchResponse
     return SearchResponse(recommendations=processed_books)
