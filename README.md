@@ -1,284 +1,353 @@
-# Book Search Web Application
-
-## Description
-
-A responsive web application that allows users to search for books using natural language queries. The backend integrates with the OpenLibrary API and a Large Language Model (LLM) to process queries and provide enhanced book recommendations. This project demonstrates modern full-stack development and AI/ML integration.
-
-## 1. System Requirements
-
-- Objective: Build a web application that allows users to search for books using natural language queries.
-
-- Key Components:
-  - Frontend: A user-friendly interface for entering queries and displaying results.
-  - Backend: A Python-based service that integrates with OpenLibrary and an LLM to process queries and generate natural language responses.
-- Key Features:
-  - Natural language query processing
-  - Integration with OpenLibrary for book data
-  - LLM-enhanced responses (e.g., summarizing book descriptions, generating recommendations).
-  - Error handling and moderation (e.g., profanity filtering).
-
-## 2. High-Level Architecture
-
-The application will follow a client-server architecture:
-
-- Frontend: A React-based web interface.
-- Backend: A Python Flask/FastAPI service.
-- External Services:
-  - OpenLibrary: For fetching book metadata.
-  - LLM: For query understanding, response generation, and summarization (e.g., OpenAI GPT -or- Hugging Face model).
-- Database: Cache book data and store user queries
-
-Database: Optional (e.g., for caching book data or storing user queries).
-
-## 3. Frontend Implementation
-
-- Tech Stack: React (for UI), HTML/CSS (for styling), Fetch API
-
-### Features
-
-- Search Bar: Allows users to enter natural language queries (e.g., "Find me a mystery novel set in Paris").
-- Speech-to-Text: Optional feature for voice input.
-- Results Display: Show book recommendations with titles, authors, and summaries in natural language.
-- Interactive Filters: Allow users to refine results by genre, author, or publication year.
-- Book Previews: Show book covers and allow users to click for more details.
-- Responsive Design: Ensure the UI works seamlessly on both desktop and mobile devices.
-- Loading States: Display a spinner or progress bar while fetching results.
-- Error Handling: Show user-friendly messages for errors (e.g., "No results found" or "Service unavailable").
-
-## 4. Backend Implementation
-
-- Tech Stack: Python (Flask/FastAPI), Docker (for containerization), LLM API (e.g., OpenAI GPT).
-
-### Services
-
-- Query Understanding: The LLM extracts keywords and intent from the user's natural language query. (e.g., "mystery novel set in Paris" → genre: mystery, location: Paris).
-
-- Information Retrieval: We use `OpenLibrary` to fetch relevant book data.
-- /search-books (POST) that accepts a JSON payload with the user's query.
-
-- Response Generation: The LLM summarizes book descriptoins and gneerates natural language responses.
-
-- Format the response as a list of book recommendations with titles, authors, and summaries.
-- Caching: Cache frequently searched queries to reduce latency.
-- Personalization: Use session data to personalize recommendations (e.g., "Based on your previous searches, you might like...").
-
-## 5. Integration with OpenLibrary and LLM
-
-= Use the OpenLibrary Search API to fetch book data based on keywords extracted by the LLM.
-
-- Example API call: https://openlibrary.org/search.json?q=mystery+paris.
-
-## 6. Example Workflow
-
-1. User Query: "Find me a mystery novel set in Paris with a strong female lead."
-
-2. Backend Processing
-
-- LLM extracts keywords: genre=mystery, location=Paris, character=strong female lead.
-
-- OpenLibrary API fetches books matching these criteria.
-
-- LLM summarizes the book descriptions and generates a natural language response.
-
-3. Frontend Display
-
-Display results:
-
-"Here are some mystery novels set in Paris with strong female leads:"
-
-"The Paris Apartment" by Lucy Foley - A gripping mystery set in a Parisian apartment building...
-
-"The Elegance of the Hedgehog" by Muriel Barbery - A philosophical mystery featuring a strong female protagonist...
-
-## Pre-Trained Large Language Models (LLMs)
-
-To extract keywords from user query input, we will use pre-trained Large Language Models (LLMs) that are specifically designed for natural language understanding (NLU) tasks like `keyword extraction`, `intent detection`, and `entity recognition`.
-
-Below are some specific LLMs and tools I considered using, along their tradeoffs.
-
-### SpaCy (em_core_web_sm)
-
-- I tried using `en_core_web_sm` for entity recognition, but didn't experience great results.
-
-For example:
-
-```python
-nlp = spacy.load("en_core_web_sm")
-doc = nlp("mystery novel set in Paris about a super hero")
-keywords = [ent.text for ent in doc.ents]
-```
-
-The result was:
-
-```stdout
-['Paris']
-```
-
-### Open-Source Models
-
-I decided to fine-tune a pre-trained model (e.g., BERT, GPT) on a dataset of book-related queries.
-
-Example Dataset:
-
-```json
-[
-  {
-    "query": "Find me a sci-fi book about space exploration.",
-    "keywords": ["sci-fi", "space exploration"]
-  },
-  {
-    "query": "I want a romance novel set in Italy.",
-    "keywords": ["romance", "Italy"]
-  }
-]
-```
-
-## Scientific Articles
-
-- When to Retrieve: Teaching LLMs to Utilize Information Retrieval Effectively [arxiv](https://arxiv.org/abs/2404.19705)
-- Large Language Models for Information Retrieval [arxiv](https://arxiv.org/pdf/2308.07107)
-- Query Reformulation for Dynamic Information Integration [sci-hub](https://sci-hub.se/https://doi.org/10.1007/BF00122124)
-- Analyzing and evaluating query reformulation strategies in web search logs (https://dl.acm.org/doi/abs/10.1145/1645953.1645966?casa_token=HARxSaPwK6QAAAAA:TBTQ4LyQO_34D_OikO6qyQx2ZrKZCotNyFApundsVYMDH3UrT6B7cFRVJAVNR08sBp7iSetubBy8)
-- BM25 algorithm
-- Webgpt: Browser-assisted question-answering with human feedback [arxiv](https://arxiv.org/abs/2112.09332)
-- Improving language models by retrieving from trillions of tokens [International Conference on Machine Learning](https://arxiv.org/abs/2112.04426)
-- MultiCoNER: A Large-scale Multilingual dataset for Complex Named Entity Recognition [arxiv](https://arxiv.org/abs/2208.14536)
-- SemEval-2022 Task 11 on Multilingual Complex Named Entity Recognition (MultiCoNER) [acl](https://aclanthology.org/2022.semeval-1.196.pdf)
-- Generalisation in named entity recognition: A quantitative analysis
-- COGCOMPNLP: Your Swiss Army Knife for NLP (https://aclanthology.org/L18-1086.pdf): library used to simplify design and development process of NLP applications.
-  - http://github.com/CogComp/cogcomp-nlp
-  - search for text modules
-- Query analysis with structural templates [Apple](https://dl.acm.org/doi/pdf/10.1145/3313831.3376451)
-- Comparative Analysis of Neural QA models on SQuAD
-
-## NER Datasets
-
-- CoNLL03 (Sang and De Meulder, 2003) - Language-Independent Named Entity Recognition [PDF](https://aclanthology.org/W03-0419.pdf)
-
-## Findings
-
-Search Queries Dataset: ORCAS Dataset (Craswell et al., 2020)
-
-- Human generated machine reading comprehension dataset
-
-- Entity types (e.g., creative works) can be linguistically complex. They can be complex noun phrases (Eternal Sunshine of the Spotless Mind), gerunds (Saving Private Ryan), infinitives (To Kill a Mockingbird), or full clauses (Mr. Smith Goes to Washington). Syntactic parsing of such nouns is hard, and most current parsers and NER systems fail to recognize them
-
-- MULTICONER (WNUT Taxonomy Entity Types)
-- creative work entities (CREATIVE-WORK (CW, movie/song/book titles))
-
-## Fine-Tuning
-
-The objective is to fine-tune a BERT model for Named Entity Recognition (NER) for book search. This will require datasets containing labeled entities (e.g., `TITLE`, `AUTHOR`, `GENRE`).
-
-Below is the approach I used to finding, curating, and preparing the best dataset for our use case.
-
-### Search for Pre-Labeled NER Datasets
-
-I searched for existing NER datasets that contain book-related entities, prioritizing datasets labeled with `titles`, `authors`, `genres`, `places`, and `publishers`.
-
-### Hugging Face Datasets
-
-https://huggingface.co/datasets
-
-- bookcorpus - https://huggingface.co/datasets/bookcorpus/bookcorpus
-- https://www.smashwords.com/
-- Web Scraping: https://github.com/BIGBALLON/cifar-10-cnn
-
-- Kaggle: Search for NER datasets for books, literature, or authors:
-
-- Google Dataset Search
-
-## Named Entity Recognition for Book Search
-
-### Primary Entities to Extract
-
-| **Entity Label** | **Description**                     | **OpenLibraryBook Field**            |
-| ---------------- | ----------------------------------- | ------------------------------------ |
-| `TITLE`          | Book title                          | `title`                              |
-| `AUTHOR`         | Author name                         | `author_name`, `author_key`          |
-| `GENRE`          | Book subject/category               | `subject`                            |
-| `PUBLISHER`      | Publisher                           | `publisher`                          |
-| `FORMAT`         | Book format (e.g., Paperback)       | `format`                             |
-| `LANGUAGE`       | Language of the book                | `language`                           |
-| `PLACE`          | Book setting or publishing location | `place`, `publish_place`             |
-| `CHARACTER`      | Important book characters           | `person`                             |
-| `YEAR`           | First publication year              | `first_publish_year`, `publish_year` |
-| `ISBN`           | ISBN identifier                     | `isbn`                               |
+# Book Recommendation System
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Problem Statement](#problem-statement)
+3. [Tech Stack](#tech-stack)
+   - [Frontend](#frontend)
+   - [Backend](#backend)
+4. [Backend Deployment](#backend-deployment)
+   - [Set Up IAM Credentials](#step-1-set-up-iam-credentials)
+   - [Build and Push Docker Image to ECR](#step-2-build-and-push-docker-image-to-ecr)
+   - [Deploy the Service to AWS ECS](#step-3-deploy-the-service-to-aws-ecs)
+   - [Updating the ECS Service](#step-4-updating-the-ecs-service)
+5. [Frontend Deployment](#frontend-deployment)
+   - [Build the Application](#step-1-build-the-application)
+   - [Configure AWS Amplify](#step-2-configure-aws-amplify)
+   - [Deploy the Application](#step-3-deploy-the-application)
 
 ---
 
-### Example Training Data for Fine-Tuning
+## Overview
 
-| **User Query**                                                    | **Labeled Entities**                                  |
-| ----------------------------------------------------------------- | ----------------------------------------------------- |
-| `"Find me a **mystery novel** by **Agatha Christie**"`            | `GENRE: "mystery novel"`, `AUTHOR: "Agatha Christie"` |
-| `"Books published in **France** in **1990**"`                     | `PLACE: "France"`, `YEAR: "1990"`                     |
-| `"Show books written in **Spanish**"`                             | `LANGUAGE: "Spanish"`                                 |
-| `"Find **science fiction** books set in **Mars**"`                | `GENRE: "science fiction"`, `PLACE: "Mars"`           |
-| `"Give me books by **J.K. Rowling** published by **Scholastic**"` | `AUTHOR: "J.K. Rowling"`, `PUBLISHER: "Scholastic"`   |
+This project is a **Book Search Application** that allows users to search for books using natural language queries. The application integrates with the **OpenLibrary Web Service** to fetch book data and uses a **Large Language Model (LLM)** to process queries and generate natural language responses. The goal is to provide a fast, intuitive search experience with response times under **1-3 seconds**.
 
-### Initialize React App
+---
 
-````bash
-npx create-react-app frontend --use-yarn --template cra-template --skip-install```
-````
+## Problem Statement
 
-## Install Swagger Editor CLI
+Users need a fast, intuitive way to search for books using natural language descriptions. The challenge is to build a system that can process these queries, fetch relevant data, and generate natural language responses within 1-3 seconds.
+
+---
+
+## Tech Stack
+
+The application follows a **client-server architecture**:
+
+### Frontend
+
+- **Tech Stack**: React, Fetch API (for HTTP requests)
+- **Core Features**:
+  - **Smart Search**: Supports natural language queries for intuitive book discovery.
+  - **Dynamic Recommendations**: Displays book titles, authors, and summaries based on user input.
+  - **Responsive UI**: Optimized for both desktop and mobile devices.
+
+### Backend
+
+- **Tech Stack**:
+  - **Python**: FastAPI
+  - **Docker**: Containerization
+  - **LLM API**: HF API, OpenAI API
+- **Core Features**:
+  - **Query Understanding**: The LLM extracts key details from user queries.
+  - **Information Retrieval**: Calls the OpenLibrary API to fetch relevant book metadata.
+  - **Response Generation**: Summarizes book descriptions and crafts natural language responses.
+  - **Caching for Performance**: Frequently searched queries are cached, reducing API calls and improving response times.
+
+---
+
+# Backend Deployment
+
+This section walks through deploying the backend service on AWS using **IAM**, **ECR**, and **ECS**. The deployment process ensures a secure, scalable, and containerized environment for the application.
+
+---
+
+## Prerequisites
+
+Before we begin, ensure you have:
+
+- An **AWS account** with administrative access.
+- The **AWS CLI** installed and configured.
+- **Docker** installed on your local machine.
+- Your backend service **containerized** using Docker.
+
+---
+
+## Step 1: Set Up IAM Credentials
+
+### 1.1 Create an IAM User
+
+1. Log in to your AWS account and navigate to the [AWS IAM Console](https://console.aws.amazon.com/iam/home).
+2. In the left sidebar, click **Users** → **Create User**.
+3. Provide a username (e.g., `backend-deploy-user`).
+4. Select **Access Key - Programmatic Access**.
+
+### 1.2 Assign IAM Policies
+
+Attach the following policies to grant the necessary permissions:
+
+- **AmazonEC2ContainerRegistryFullAccess** – Allows full access to Amazon ECR (push, pull, delete images).
+- **AmazonECS_FullAccess** – Provides full permissions to create and manage ECS resources.
+- **IAMFullAccess** – Enables role and permission management.
+- **CloudWatchLogsFullAccess** – Allows access to CloudWatch for ECS logging.
+- **AmazonS3ReadOnlyAccess** – Grants read-only access to S3, useful if storing static assets or configuration.
+
+### 1.3 Generate Access Keys
+
+1. In the IAM user settings, navigate to **Security Credentials**.
+2. Scroll to the **Access Keys** section and click **Create Access Key**.
+3. Copy both the **Access Key ID** and **Secret Access Key**. Store these securely.
+
+### 1.4 Configure AWS CLI with Credentials
+
+1. Install AWS CLI by running the command in terminal:
 
 ```bash
-yarn add swagger-cli --dev
-
+brew install awscli
 ```
 
-### Validate Changes Consistently
-
-As changes are made to the backend, revalidate the `openapi.yaml` file after any updates:
+2. Run the following command and enter the IAM credentials when prompted:
 
 ```bash
-swagger-cli validate openapi.yaml
-
+aws configure
 ```
+
+## Step 2: Build and Push Docker Image to ECR
+
+### **2.1 Create an ECR Repository**
+
+1. Open the [Amazon ECR Console](https://console.aws.amazon.com/ecr/home).
+2. Click **Create Repository**.
+3. Enter a repository name (e.g., `backend-service`).
+4. Select **Private Repository**.
+5. Click **Create** and note the repository URI.
+
+### **2.2 Authenticate Docker with ECR**
+
+To push Docker images to ECR, first authenticate your local Docker client:
 
 ```bash
-fastapi dev app/main.py
+aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 ```
 
-http://127.0.0.1:8000/docs
-http://127.0.0.1:8000/redoc
+Ensure you replace the following variables:
 
-## Add TypeScript Support
+- `${AWS_REGION}` with the AWS region (e.g., `us-east-2`)
+- `${AWS_ACCOUNT_ID}` with your AWS account ID.
+
+### **2.3** Build the Docker Image
+
+Once the Amazon ECR repository is set up, we need to build, tag, and push the Docker image. This ensures that the backend service is properly containerized and stored in AWS Elastic Container Registry (ECR) for deployment.
+
+We will use `docker buildx` to build the image. This ensures compatibility with AWS Fargate, which runs on **linux/amd64** architecture.
 
 ```bash
-yarn add typescript @types/react @types/react-dom
+docker buildx build \
+  --platform linux/amd64 \
+  --provenance=false \
+  -t ${ECR_REPOSITORY_NAME}:latest \
+  --load .
 ```
 
-## OpenLibrary API
+- `--platform linux/amd64` → Ensures compatibility with AWS Fargate.
+- `--provenance=false` → Disables provenance metadata, reducing build time.
+- `-t ${ECR_REPOSITORY_NAME}:latest` → Tags the image locally as latest.
+- `--load` → Loads the built image into the local Docker daemon.
 
-Examples
+### **2.4** Tag Image for ECR
 
-The URL format for API is simple. Take the search URL and add .json to the end. Eg:
+Tagging is required so the image can be correctly referenced when pushing to ECR.
 
-    https://openlibrary.org/search.json?q=the+lord+of+the+rings
-    https://openlibrary.org/search.json?title=the+lord+of+the+rings
-    https://openlibrary.org/search.json?author=tolkien&sort=new
-    https://openlibrary.org/search.json?q=the+lord+of+the+rings&page=2
-    https://openlibrary.org/search/authors.json?q=twain
-
-```
-+----------------------------------------------------+
-|  [Book Cover]    "The Lord of the Rings"          |
-|                 by J.R.R. Tolkien                 |
-|----------------------------------------------------|
-| 🏆 250 Editions  📖 1193 Pages  🎙️ Audio Available |
-| 🌎 Available in: EN, FR, SP, IT, DE...            |
-| 📅 First Published: 1954                          |
-| 🔖 Subjects: Fantasy, Middle-Earth, Magic         |
-|----------------------------------------------------|
-| 📥 Read Online  🔗 Borrow  ❤️ Add to Favorites    |
-+----------------------------------------------------+
+```bash
+docker tag ${ECR_REPOSITORY_NAME}:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}:latest
 ```
 
-### Clickable Tags for Filtering
+- `${ECR_REPOSITORY_NAME}:latest` → The locally built image.
+- `${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}:latest` → The ECR repository where the image will be pushed.
 
-- Use auto-generated tags from subjects & characters.
-- Clicking a tag refines search results dynamically.
+### **2.4** Push Image to ECR
+
+```bash
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-2.amazonaws.com/${ECR_REPOSITORY_NAME}:latest
+```
+
+---
+
+## **Step 3: Deploy the Service to AWS ECS**
+
+Now that our Docker image is stored in **Amazon ECR**, we can deploy it to **Amazon ECS (Elastic Container Service)** using **Fargate**, AWS’s serverless container orchestration service.
+
+---
+
+### **3.1 Create an ECS Cluster**
+
+1. Open the [ECS Console](https://console.aws.amazon.com/ecs/home).
+2. In the left sidebar, click **Clusters** → **Create Cluster**.
+3. Select **Fargate (serverless)**.
+4. Configure the cluster settings as needed (default settings are fine for most cases).
+5. Click **Create**.
+
+---
+
+### **3.2 Create a Task Definition**
+
+A **task definition** tells ECS how to run a container, including CPU/memory limits, networking, and container settings.
+
+1. Navigate to **Task Definitions** → **Create New Task Definition**.
+2. Choose **Fargate** as the launch type and click **Next**.
+3. Configure the container settings:
+   - **Container Name**: `backend-service`
+   - **Image URI**: Use the **ECR repository URI** from Step 2.
+   - **Memory/CPU**: Choose an appropriate size (e.g., `512 MB / 0.25 vCPU`).
+   - **Port Mappings**: Set **8000** (or the port your backend listens on).
+4. Click **Create**.
+
+---
+
+### **3.3 Deploy the Service on ECS**
+
+A **service** ensures that the task (container) runs continuously and handles scaling.
+
+1. Navigate to **ECS Clusters** and select your cluster.
+2. Click **Create Service**.
+3. Configure the service:
+   - **Launch Type**: `Fargate`
+   - **Task Definition**: Select the one created in Step 3.2.
+   - **Service Name**: `backend-service`
+   - **Number of Tasks**: Set an appropriate number (`1` for testing, scale up for production).
+4. Click **Deploy**.
+
+---
+
+### **3.4 Verify the Deployment**
+
+1. Navigate to your **ECS Cluster** → **Services**.
+2. Click on your running service and note the **Public IP** of the running task.
+3. Test the deployment by sending a request:
+
+```bash
+  curl http://${PUBLIC_IP}:8080
+```
+
+If the service responds correctly, your backend is now successfully running on AWS ECS Fargate.
+
+---
+
+## Step 4: Updating the ECS Service
+
+When changes are made to the backend service, the updated Docker container needs to be deployed to **Amazon ECS** to ensure the latest version of the application is running in the cluster. Below are the steps to build, tag, push, and deploy the updated container.
+
+---
+
+### **4.1 Build the Docker Image**
+
+First, build the Docker image for the backend service. This step compiles the application into a container that can be deployed to ECS.
+
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  --provenance=false \
+  -t ${ECR_REPOSITORY_NAME}:latest \
+  --load .
+```
+
+---
+
+### **4.2 Tag the Docker Image**
+
+After building the image, tag it with the full ECR repository URL. This step prepares the image to be pushed to the Amazon Elastic Container Registry (ECR).
+
+```bash
+docker tag ${ECR_REPOSITORY_NAME}:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}:latest
+```
+
+---
+
+### **4.3 Push the Image to ECR**
+
+```bash
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-2.amazonaws.com/${ECR_REPOSITORY_NAME}:latest
+```
+
+---
+
+### **4.4 Update ECS Service**
+
+Finally, update the ECS service to use the newly pushed container image. This step triggers a new deployment, replacing the old containers with the updated version.
+
+```bash
+aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service ${ECS_SERVICE_NAME} --force-new-deployment --region ${AWS_REGION}
+```
+
+---
+
+# Frontend Deployment
+
+This section outlines the steps required to deploy the frontend of the **Book Search Application** using **AWS Amplify**. AWS Amplify automates the deployment process, integrating directly with GitHub for continuous deployment. By following these steps, you can ensure a smooth and efficient deployment process.
+
+---
+
+## Prerequisites
+
+Before starting the deployment process, ensure the following steps are completed:
+
+1. **AWS Account**: You need an AWS account with the necessary permissions to create and manage Amplify applications.
+2. **GitHub Repository**: The frontend code should be hosted in a GitHub repository.
+3. **Node.js and Yarn**: Ensure Node.js and Yarn are installed on your local machine.
+
+---
+
+## Step 1: Build the Application
+
+### 1.1 Run linting tool
+
+Run the linting tool to ensure the code adheres to the project's coding standards:
+
+```bash
+yarn run lint
+```
+
+### 1.2 Create Production Build
+
+Generate an optimized production build of the application:
+
+```bash
+yarn run build
+```
+
+This command compiles the React application into a set of static files that can be served by a web server.
+
+## Step 2: Configure AWS Amplify
+
+### 2.1: Navigate to the AWS Amplify Console
+
+1. Go to the AWS Amplify Console.
+2. Sign in with your AWS credentials.
+
+### 2.2: Create a New Application
+
+1. Click the "Create New Application" button to start the process.
+2. Select GitHub as the source code provider.
+
+### 2.3: Connect the Repository
+
+- Choose the name of the repository from your GitHub account.
+- Select the `main` branch for deployment.
+
+### 2.4: Configure the Monorepo
+
+Since the frontend application is part of a monorepo, specify the root directory:
+
+- Set the root directory to `frontend` to ensure Amplify knows where to find the source code.
+
+## Step 3: Deploy the Application
+
+- Click the "Next" button to proceed.
+- AWS Amplify will automatically build and deploy the application to the cloud.
+
+Once the deployment is complete, the application will be accessible at the provided Amplify URL.
+
+---
