@@ -50,3 +50,8 @@ class OpenLibraryAPI:
         """
         url = self.base_url + self.SEARCH_ENDPOINT.format(query=query)
         return await self.fetch_data(url)
+
+    async def close(self):
+
+
+        pass
