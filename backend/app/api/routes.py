@@ -31,32 +31,35 @@ router = APIRouter()
 
 @router.post("/search_books", response_model=SearchResponse)
 async def search_books(request: Request, payload: SearchRequest):
-
     query = payload.query.strip().lower()
     print(f"Received query: {query}")
 
     if contains_profanity(query):
         raise HTTPException(status_code=403, detail="Profanity is not allowed.")
 
-    # 1) Check Redis cache
+    # Check Redis cache
     cached_results = redis_client.get(f"books:{query}")
     if cached_results:
-        # The cache should store already-processed results
         return SearchResponse(recommendations=json.loads(cached_results))
 
+    # Retrieve clients from the app state.
+    open_library_client = request.app.state.open_library_client
     llm_client = request.app.state.llm_client
 
-    # 2) The LLM client returns (refined_query, raw_docs)
-    refined_query, raw_docs = await llm_client.process_query(query)
+    # Await the extraction of keywords.
+    keywords = await llm_client.extract_keywords(query)
+    print("Extracted keywords:", keywords)
 
-    # 4) Process the raw docs into proper shape (title, authors, description)
-    processed_books = process_results({"docs": raw_docs})
-    print("processed_books:", processed_books)
+    # Search OpenLibrary with the refined keywords.
+    search_results = await open_library_client.search(keywords)
+    print("Search results:", search_results)
+    books = search_results.get("docs", [])
+    print("Books:", books)
 
-    # 5) Cache the processed results
-    redis_client.setex(
-        f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books])
-    )
+    # Process raw OpenLibrary docs into the proper book format.
+    processed_books = process_results({"docs": books})
+    print("Processed books:", processed_books)
 
-    # 6) Return books in correct shape for SearchResponse
+    # Optionally, you can cache processed_books here.
+
     return SearchResponse(recommendations=processed_books)
