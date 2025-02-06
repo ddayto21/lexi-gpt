@@ -1,15 +1,62 @@
-API Design
+# Development Environment
 
-    Define a single POST /search-books operation in the openapi spec
+This guide walks you through setting up the development environment for the project. Follow the steps below to install dependencies, start services, and run the backend locally.
 
-    Use JSON schemas for request, response, and errors.
+---
 
-    The request body has a single property “query” (string).
+## Table of Contents
 
-    The response returns either a successful JSON with “recommendations” (an array of objects containing “title,” “authors,” and “description”) and possibly a top-level “message” for moderation warnings, or an error JSON if something fails.
+1. [Prerequisites](#prerequisites)
+2. [Installing Dependencies](#installing-dependencies)
+   - [Redis](#install-redis)
+3. [Run Backend Application](#running-the-backend)
 
-    Include a “Book” model with fields “title” (string), “authors” (array of strings), and “description” (string). Define an “Error” model with “code” (string or integer) and “message” (string) for any issues like profanity detection or OpenLibrary/LLM failures. Specify 400 or 403 for validation/moderation errors, and 500 for system errors.
+---
 
-    Add documentation to describe LLM integration for query processing and response generation, and that the backend uses OpenLibrary based on the LLM-refined query.
+## Prerequisites
 
-Keep the latency requirement in mind: the spec can’t be overly complex or add extra synchronous calls.
+Ensure you have the following installed before proceeding:
+
+- **[Poetry](https://python-poetry.org/)** – Dependency and package manager for Python.
+- **[Redis](https://redis.io/)** – Caching server for session storage and fast lookups.
+- **[Homebrew](https://brew.sh/)** (MacOS only) – Package manager for installing Redis.
+
+---
+
+## Installing Dependencies
+
+### **Install Redis**
+
+On macOS, install Redis using Homebrew:
+
+```bash
+brew install redis
+```
+
+### Start Redis Instance
+
+Once installed, start the Redis server:
+
+```bash
+redis-server
+```
+
+To start the backend server, navigate to the `backend` directory and run:
+
+```bash
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The backend should now be running. You can test it by visiting:
+
+```bash
+http://localhost:8000/docs
+```
+
+This will open the Swagger UI, where you can interact with the API.
+
+## Running Tests
+
+```bash
+poetry run pytest
+```
