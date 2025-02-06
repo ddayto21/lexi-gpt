@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.api.routes import router
-from app.clients.open_library import OpenLibraryAPI
+from app.clients.open_library_api_client import OpenLibraryAPI
 from app.clients.llm_client import LLMClient
 from app.clients.book_cache_client import BookCacheClient
 
