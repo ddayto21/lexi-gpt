@@ -13,6 +13,8 @@ ENV PYTHONUNBUFFERED=1 \
 # 3) Install system dependencies and Poetry, then clean up
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
+    gcc \
   && curl -sSL https://install.python-poetry.org | python3 - \
   && ln -s /root/.local/bin/poetry /usr/local/bin/poetry \
   && apt-get remove -y curl \
@@ -26,7 +28,6 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock README.md ./
 
 # 6) Install dependencies without dev packages
-
 RUN poetry install --no-interaction --no-ansi
 
 # 7) Copy application code
