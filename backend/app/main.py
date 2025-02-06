@@ -12,16 +12,6 @@ from app.clients.book_cache_client import BookCacheClient
 
 load_dotenv()
 
-app = FastAPI(redirect_slashes=False)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://main.d2hvd5sv2imel0.amplifyapp.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
