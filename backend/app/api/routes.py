@@ -52,14 +52,16 @@ async def search_books(request: Request, payload: SearchRequest):
 
     # Search OpenLibrary with the refined keywords.
     search_results = await open_library_client.search(keywords)
-    print("Search results:", search_results)
+
     books = search_results.get("docs", [])
-    print("Books:", books)
 
     # Process raw OpenLibrary docs into the proper book format.
     processed_books = process_results({"docs": books})
     print("Processed books:", processed_books)
 
-    # Optionally, you can cache processed_books here.
+    # # Cache the processed results
+    redis_client.setex(
+        f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books])
+    )
 
     return SearchResponse(recommendations=processed_books)

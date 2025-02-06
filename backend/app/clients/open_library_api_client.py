@@ -1,5 +1,6 @@
 import httpx
 from typing import Dict, Any
+import urllib.parse
 
 BASE_URL = "https://openlibrary.org"
 
@@ -13,6 +14,7 @@ class OpenLibraryAPI:
     """
 
     SEARCH_ENDPOINT = "/search.json?q={query}&limit=5"
+    SUBJECTS_ENDPOINT = "/subjects/{query}.json?details=true"
 
     def __init__(self):
         self.base_url = BASE_URL
@@ -36,6 +38,29 @@ class OpenLibraryAPI:
         Searches for books using the query string.
         """
         url = f"{self.base_url}{self.SEARCH_ENDPOINT.format(query=query)}"
+        return await self.fetch_data(url)
+
+    async def search_subjects(self, query: str) -> Dict[str, Any]:
+        """
+        Searches for works on one or more subjects using the search endpoint.
+
+        Splits the query by commas and uses an "OR" query to find works matching any subject.
+
+        For example:
+            Input: "juvenile fiction, juvenile literature"
+            Constructs: subject:("juvenile fiction" OR "juvenile literature")
+            Final URL: https://openlibrary.org/search.json?q=subject:(%22juvenile+fiction%22+OR+%22juvenile+literature%22)
+        """
+        # Split the query into individual subjects and trim whitespace.
+        terms = [term.strip() for term in query.split(",") if term.strip()]
+        if not terms:
+            return {}
+        # Create a query string using OR logic.
+        or_query = " OR ".join(f'"{term}"' for term in terms)
+        full_query = f"subject:({or_query})"
+        encoded_query = urllib.parse.quote(full_query)
+        url = f"{self.base_url}/search.json?q={encoded_query}"
+        print("url: ", url)
         return await self.fetch_data(url)
 
     async def close(self):
