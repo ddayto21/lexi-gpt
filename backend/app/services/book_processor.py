@@ -3,13 +3,19 @@
 from typing import List, Dict
 from app.schemas.search_books import Book
 
+
 def process_results(results: Dict) -> List[Book]:
     """
     Convert OpenLibrary docs into Book schema (title, authors, description).
     """
+    print("Processing results...")
+    # print(results)
+    
     book_docs = results.get("docs", [])
     books_data = []
     for doc in book_docs:
+        # print("doc: ", doc)
+        print("\n")
         title = doc.get("title", "Untitled")
         # For "authors", combine "author_name" if it exists, else fallback
         authors = doc.get("author_name", [])

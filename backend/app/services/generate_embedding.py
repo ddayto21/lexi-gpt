@@ -11,7 +11,7 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 
 # Import preprocessing functions from preprocessing.py
-from preprocessing import preprocess_book, create_embedding_input
+from backend.app.services.preprocess_books import preprocess_book, create_embedding_input
 
 # Configure logging with a clear format
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
