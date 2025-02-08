@@ -20,9 +20,19 @@ qdrant-client = "^1.13.2"
 ollama = "^0.4.7"
 asgi-lifespan = "^2.1.0"
 
-blis = "==0.7.9"
+blis = "^1.2.0"
 uvicorn = "^0.34.0"
 asyncio = "^3.4.3"
+transformers = "^4.48.2"
+torch = "^2.6.0"
+nltk = "^3.9.1"
+scikit-learn = "^1.6.1"
+pandas = "^2.2.3"
+numpy = "^2.2.2"
+bs4 = "^0.0.2"
+sentence-transformers = "^3.4.1"
+spacy = "^3.8.4"
+matplotlib = "^3.10.0"
 
 [tool.poetry.group.dev.dependencies]
 
