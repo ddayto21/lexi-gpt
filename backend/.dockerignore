@@ -1,6 +1,7 @@
 # Ignore environment files
 .env
 .env.*
+.venv/
 
 # Ignore cache and dependency directories
 node_modules/
