@@ -19,7 +19,7 @@ from app.clients.open_library_api_client import OpenLibraryAPI
 from app.clients.llm_client import LLMClient
 from app.clients.book_cache_client import BookCacheClient
 from sentence_transformers import SentenceTransformer
-from app.services.semantic_search import load_book_embeddings, load_books_metadata
+from app.pipelines.load import load_book_embeddings, load_book_metadata
 
 
 # Load environment variables
@@ -31,9 +31,9 @@ logging.basicConfig(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-EMBEDDINGS_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "embedding_outputs.json"
-BOOKS_METADATA_FILE = (
-    BASE_DIR / "app" / "data" / "book_metadata" / "books_metadata.json"
+BOOK_EMBEDDINGS_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
+BOOK_METADATA_FILE = (
+    BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
 )
 
 
@@ -62,8 +62,8 @@ async def lifespan(app: FastAPI):
 
     # Load embeddings & metadata
     try:
-        app.state.document_embeddings = load_book_embeddings(str(EMBEDDINGS_FILE))
-        app.state.books_metadata = load_books_metadata(str(BOOKS_METADATA_FILE))
+        app.state.document_embeddings = load_book_embeddings(str(BOOK_EMBEDDINGS_FILE))
+        app.state.books_metadata = load_book_metadata(str(BOOK_METADATA_FILE))
         if app.state.document_embeddings is None or app.state.books_metadata is None:
             raise ValueError("Embeddings or metadata failed to load.")
         logging.info(f"Loaded {len(app.state.books_metadata)} books successfully.")

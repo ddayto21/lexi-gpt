@@ -1,49 +1,20 @@
 import json
 import logging
+
 import numpy as np
 import pandas as pd
+
 import torch
 from sentence_transformers import SentenceTransformer, util
+
+from typing import List, Dict, Any, Optional
+
 from pathlib import Path
-
-
-def load_book_embeddings(file_path: str) -> np.ndarray:
-    """
-    Load book embeddings from a JSON file as a NumPy array.
-
-    Args:
-        file_path (str): Path to the JSON file containing embeddings.
-
-    Returns:
-        np.ndarray: Array of embeddings cast to float32.
-    """
-    try:
-        df = pd.read_json(file_path)
-        logging.info(f"Loaded embeddings with shape {df.shape}")
-        return df.to_numpy().astype("float32")
-    except Exception as e:
-        logging.error(f"Error loading embeddings from {file_path}: {e}")
-        raise
-
-
-def load_books_metadata(file_path: str) -> list:
-    """
-    Load book metadata from a JSON file.
-
-    Args:
-        file_path (str): Path to the JSON file containing book metadata.
-
-    Returns:
-        list: List of book metadata dictionaries.
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-        logging.info(f"Loaded metadata for {len(metadata)} books.")
-        return metadata
-    except Exception as e:
-        logging.error(f"Error loading books metadata from {file_path}: {e}")
-        raise
+from app.pipelines.load import (
+    load_book_embeddings,
+    load_book_metadata,
+    save_book_embeddings,
+)
 
 
 def create_vector_embedding(
@@ -67,6 +38,21 @@ def create_vector_embedding(
     with torch.no_grad():
         embeddings = model.encode([processed_text], device=device).astype("float32")
     return embeddings
+
+
+def create_book_embeddings(
+    model: SentenceTransformer, book_metadata: List[Dict[str, Any]], device: str = "cpu"
+):
+    """
+    Generate vector embeddings for each record in the book corpus and save them as a JSON file.
+    """
+
+    return np.vstack(
+        [
+            create_vector_embedding(model, book["embedding_input"], device)
+            for book in book_metadata
+        ]
+    )
 
 
 def calculate_similarity_scores(
@@ -109,30 +95,47 @@ def main():
     """
     Main function to load data, compute similarities, and display top related books.
     """
-    # Initialize the SentenceTransformer model 
+    # Initialize the SentenceTransformer model
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    # Load embeddings and metadata
-    document_embeddings = load_book_embeddings(EMBEDDINGS_FILE)
-    books_metadata = load_books_metadata(BOOKS_METADATA_FILE)
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+
+    # Load book embeddings and metadata
+    book_embeddings = load_book_embeddings(BOOK_EMBEDDINGS_FILE)
+    book_metadata = load_book_metadata(BOOK_METADATA_FILE)
+
+    #  Explicitly check if book_embeddings is empty
+    if book_embeddings is not None and book_embeddings.size > 0:
+        logging.info("Loaded book embeddings...")
+
+    else:
+        logging.info("Cannot load book embeddings, generating new vectors...")
+
+        logging.info("Encoding book embeddings for corpus...")
+        book_embeddings = create_book_embeddings(model, book_metadata, device)
+
+        print("Book embeddings:", book_embeddings)
+        print("Book embeddings shape:", book_embeddings.shape)
+        print("Book embeddings type:", type(book_embeddings))
+
+        logging.info("Saving book embeddings...")
+        save_book_embeddings(book_embeddings, BOOK_EMBEDDINGS_FILE)
 
     # Define the search query
     search_query = "I am looking for a book that contains information about maximizing my potential and doubling my income by learning valuable skills"
     logging.info("Processing search query...")
 
     # Encode search query iinto vector embedding
-    query_embedding = create_vector_embedding(model, search_query)
+    query_embedding = create_vector_embedding(model, search_query, device)
 
     # Compute similarity scores between query and document embeddings
-    similarity_tensor = calculate_similarity_scores(
-        query_embedding, document_embeddings
-    )
+    similarity_tensor = calculate_similarity_scores(query_embedding, book_embeddings)
     logging.info(f"Similarity tensor: {similarity_tensor}")
 
     # Retrieve and display the top related books
-    top_books = get_top_k_books(similarity_tensor, books_metadata, k=5)
+    top_books = get_top_k_books(similarity_tensor, book_metadata, k=5)
     logging.info("Top related books:")
-    
+
     for idx, book in enumerate(top_books, start=1):
         logging.info(f"{idx}. {book['title']} by {book['author']}")
 
@@ -143,19 +146,18 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    # Determine the base directory of your project.
-    # Adjust the number of .parent calls as needed.
+    # Determine the base directory of project.
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
     # Construct file paths relative to the base directory.
-    EMBEDDINGS_FILE = (
-        BASE_DIR / "app" / "data" / "book_metadata" / "embedding_outputs.json"
+    BOOK_EMBEDDINGS_FILE = (
+        BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
     )
-    BOOKS_METADATA_FILE = (
-        BASE_DIR / "app" / "data" / "book_metadata" / "books_metadata.json"
+    BOOK_METADATA_FILE = (
+        BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
     )
 
-    print(f"Embeddings file path: {EMBEDDINGS_FILE}")
-    print(f"Books metadata file path: {BOOKS_METADATA_FILE}")
+    print(f"Embeddings file path: {BOOK_EMBEDDINGS_FILE}")
+    print(f"Book metadata file path: {BOOK_METADATA_FILE}")
 
     main()

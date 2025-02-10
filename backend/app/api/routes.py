@@ -9,8 +9,6 @@ from app.services.profanity import contains_profanity
 from sentence_transformers import SentenceTransformer
 
 from app.services.semantic_search import (
-    load_book_embeddings,
-    load_books_metadata,
     create_vector_embedding,
     calculate_similarity_scores,
     get_top_k_books,
@@ -58,7 +56,7 @@ async def search_books(request: Request, payload: SearchRequest):
     if contains_profanity(query):
         raise HTTPException(status_code=403, detail="Profanity is not allowed.")
 
-    # ✅ Ensure model & device are available
+    # Ensure model & device are available
     model = getattr(request.app.state, "model", None)
     device = getattr(request.app.state, "device", "cpu")
 
@@ -68,7 +66,7 @@ async def search_books(request: Request, payload: SearchRequest):
             status_code=500, detail="Server error: Model not initialized."
         )
 
-    # ✅ Ensure embeddings & metadata are available
+    # Ensure book embeddings & metadata are available
     document_embeddings = getattr(request.app.state, "document_embeddings", None)
     books_metadata = getattr(request.app.state, "books_metadata", None)
 
