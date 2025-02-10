@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 
 from app.api.routes import router
 from app.clients.open_library_api_client import OpenLibraryAPI
-from app.clients.llm_client import LLMClient
+
 from app.clients.book_cache_client import BookCacheClient
 from sentence_transformers import SentenceTransformer
 from app.pipelines.load import load_book_embeddings, load_book_metadata

@@ -51,6 +51,7 @@ class OpenLibraryAPI:
             Constructs: subject:("juvenile fiction" OR "juvenile literature")
             Final URL: https://openlibrary.org/search.json?q=subject:(%22juvenile+fiction%22+OR+%22juvenile+literature%22)
         """
+        print("query: ", query)
         # Split the query into individual subjects and trim whitespace.
         terms = [term.strip() for term in query.split(",") if term.strip()]
         if not terms:

@@ -4,6 +4,7 @@ import json
 import redis
 import os
 
+
 class BookCacheClient:
     """
     Provides caching for book search results in Redis.
@@ -19,10 +20,7 @@ class BookCacheClient:
         self.default_ttl = default_ttl
         # Create a redis connection; for large apps, you'd handle connect, ping, etc.
         self.redis = redis.Redis(
-            host=self.host,
-            port=self.port,
-            db=self.db,
-            decode_responses=True
+            host=self.host, port=self.port, db=self.db, decode_responses=True
         )
 
     def _normalize_key(self, query: str) -> str:
