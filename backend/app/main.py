@@ -31,10 +31,10 @@ logging.basicConfig(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BOOK_EMBEDDINGS_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
-BOOK_METADATA_FILE = (
-    BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
+BOOK_EMBEDDINGS_FILE = (
+    BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
 )
+BOOK_METADATA_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
 
 
 # Ensure subprocesses terminate properly
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
         logging.error(f"Error loading book data: {e}")
         app.state.document_embeddings = None
         app.state.books_metadata = None
-    
+
     try:
         book_cache = BookCacheClient(default_ttl=3600)
         book_cache.redis.ping()  # Ensure Redis is reachable
@@ -80,7 +80,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.error(f"Failed to connect to Redis: {e}")
         app.state.book_cache = None  # Prevent crash
-        
 
     yield  # Application runs here
 
@@ -100,7 +99,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://main.d2hvd5sv2imel0.amplifyapp.com",
-        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
