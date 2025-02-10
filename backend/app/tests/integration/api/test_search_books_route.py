@@ -8,6 +8,7 @@ from app.main import app
 async def async_test_client():
     """
     Creates an AsyncClient that runs the app's lifespan events.
+    Ensures app state is properly initialized before running tests.
     """
     async with LifespanManager(app):
         async with httpx.AsyncClient(
@@ -15,26 +16,26 @@ async def async_test_client():
         ) as client:
             yield client
 
-
 @pytest.mark.asyncio
 async def test_search_books_normal(async_test_client):
     """
-    Tests a normal query to /search_books, expecting 200 and some recommendations.
+    Tests a normal query to /search_books, expecting 200 and valid book list.
     """
     payload = {"query": "fantasy novel"}
     resp = await async_test_client.post("/search_books", json=payload)
     assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
-    data = resp.json()
-    assert "recommendations" in data, "Expected key 'recommendations' in response"
-    recs = data["recommendations"]
-    assert isinstance(recs, list), "Expected 'recommendations' to be a list"
+    books = resp.json()
+    assert isinstance(books, list), "Expected response to be a list of books"
 
-    if recs:
-        first = recs[0]
-        assert "title" in first
-        assert "authors" in first
-        assert "description" in first
+    if books:
+        first = books[0]
+        assert "title" in first, "Expected 'title' in book recommendation"
+        assert "author" in first, "Expected 'author' in book recommendation"
+        assert "year" in first, "Expected 'year' in book recommendation"
+        assert "book_id" in first, "Expected 'book_id' in book recommendation"
+        assert "subjects" in first, "Expected 'subjects' in book recommendation"
+
 
 @pytest.mark.asyncio
 async def test_search_books_profanity(async_test_client):
@@ -67,33 +68,42 @@ async def test_search_books_caching(async_test_client):
     assert first_data == second_data, "Expected identical responses from cache"
 
 @pytest.mark.asyncio
-async def test_search_books_empty_query(async_test_client):
+async def test_search_books_missing_model(async_test_client):
     """
-    If the user sends an empty query, the route should still return 200 with minimal results.
+    If the model is not initialized, the request should return a 500 error.
     """
-    payload = {"query": ""}
-    resp = await async_test_client.post("/search_books", json=payload)
-    assert resp.status_code == 200
+    # Temporarily remove model from app state
+    model_backup = app.state.model
+    del app.state.model
 
-    data = resp.json()
-    assert "recommendations" in data
-    recs = data["recommendations"]
-    assert isinstance(recs, list), "Expected a list, even if empty"
+    payload = {"query": "mystery book"}
+    resp = await async_test_client.post("/search_books", json=payload)
+    
+    # Restore the model
+    app.state.model = model_backup
+
+    assert resp.status_code == 500, f"Expected 500, got {resp.status_code}"
+    assert "detail" in resp.json(), "Expected 'detail' key in response"
+    assert resp.json()["detail"] == "Server error: Model not initialized."
 
 @pytest.mark.asyncio
-async def test_search_books_specific(async_test_client):
+async def test_search_books_missing_embeddings(async_test_client):
     """
-    A more specific query to see if results appear correct.
+    If embeddings or metadata are missing, the request should return a 500 error.
     """
-    payload = {"query": "mystery novel in London"}
-    resp = await async_test_client.post("/search_books", json=payload)
-    assert resp.status_code == 200
+    # Temporarily remove embeddings and metadata from app state
+    embeddings_backup = app.state.document_embeddings
+    metadata_backup = app.state.books_metadata
+    del app.state.document_embeddings
+    del app.state.books_metadata
 
-    data = resp.json()
-    recs = data["recommendations"]
-    assert isinstance(recs, list)
-    if recs:
-        first = recs[0]
-        assert "title" in first
-        assert "authors" in first
-        assert "description" in first
+    payload = {"query": "science fiction"}
+    resp = await async_test_client.post("/search_books", json=payload)
+
+    # Restore embeddings and metadata
+    app.state.document_embeddings = embeddings_backup
+    app.state.books_metadata = metadata_backup
+
+    assert resp.status_code == 500, f"Expected 500, got {resp.status_code}"
+    assert "detail" in resp.json(), "Expected 'detail' key in response"
+    assert resp.json()["detail"] == "Server error: Book data not available."
