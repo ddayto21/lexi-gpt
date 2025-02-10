@@ -1,15 +1,65 @@
-API Design
+# Development Environment
 
-    Define a single POST /search-books operation in the openapi spec
+This guide walks you through setting up the development environment for the project. Follow the steps below to install dependencies, start services, and run the backend locally.
 
-    Use JSON schemas for request, response, and errors.
+---
 
-    The request body has a single property “query” (string).
+## Table of Contents
 
-    The response returns either a successful JSON with “recommendations” (an array of objects containing “title,” “authors,” and “description”) and possibly a top-level “message” for moderation warnings, or an error JSON if something fails.
+1. [Prerequisites](#prerequisites)
+2. [Installing Dependencies](#installing-dependencies)
+   - [Redis](#install-redis)
+3. [Run Development Server](#start-development-server)
 
-    Include a “Book” model with fields “title” (string), “authors” (array of strings), and “description” (string). Define an “Error” model with “code” (string or integer) and “message” (string) for any issues like profanity detection or OpenLibrary/LLM failures. Specify 400 or 403 for validation/moderation errors, and 500 for system errors.
+---
 
-    Add documentation to describe LLM integration for query processing and response generation, and that the backend uses OpenLibrary based on the LLM-refined query.
+## Build Docker Image
 
-Keep the latency requirement in mind: the spec can’t be overly complex or add extra synchronous calls.
+```bash
+docker build -t book-search-dev:latest .
+```
+
+## Run Docker Container
+
+```bash
+docker run --name dev-container -p 8000:8000  book-search-dev
+```
+
+## Prerequisites
+
+- **[Redis](https://redis.io/)** – Caching server for session storage and fast lookups.
+- **[Homebrew](https://brew.sh/)** (MacOS only) – Package manager for installing Redis.
+
+---
+
+## Installing Dependencies
+
+### **Install Redis**
+
+On macOS, install Redis using Homebrew:
+
+```bash
+brew install redis
+```
+
+### Start Redis Instance
+
+Once installed, start the Redis server:
+
+```bash
+redis-server
+```
+
+## Start Development Server
+
+To start the backend server, navigate to the `backend` directory and run:
+
+```bash
+fastapi dev app/main.py
+```
+
+The backend should now be running. You can test it by visiting:
+
+```bash
+http://localhost:8000/docs
+```
