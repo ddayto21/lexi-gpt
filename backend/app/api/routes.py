@@ -1,11 +1,51 @@
 # app/api/routes.py
 
 from fastapi import APIRouter, Request, HTTPException
-from app.schemas.search_books import SearchRequest, SearchResponse
-from app.services.book_processor import process_results
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from app.schemas.search_books import Book, SearchRequest, SearchResponse
+
 from app.services.profanity import contains_profanity
+from sentence_transformers import SentenceTransformer
+
+from app.services.semantic_search import (
+    load_book_embeddings,
+    load_books_metadata,
+    create_vector_embedding,
+    calculate_similarity_scores,
+    get_top_k_books,
+)
 import json
 import redis
+import logging
+import numpy as np
+import torch
+from pathlib import Path
+
+
+router = APIRouter()
+
+# Load embeddings and metadata once during startup
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+EMBEDDINGS_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "embedding_outputs.json"
+BOOKS_METADATA_FILE = (
+    BASE_DIR / "app" / "data" / "book_metadata" / "books_metadata.json"
+)
+
+logging.info("Loading book embeddings and metadata into memory...")
+try:
+    document_embeddings = load_book_embeddings(str(EMBEDDINGS_FILE))
+    books_metadata = load_books_metadata(str(BOOKS_METADATA_FILE))
+    logging.info(f"Successfully loaded {len(books_metadata)} books and embeddings.")
+except Exception as e:
+    logging.error(f"Failed to load book embeddings or metadata: {e}")
+    document_embeddings, books_metadata = None, None
+
+# Load SentenceTransformer model
+logging.info("Initializing SentenceTransformer model...")
+model = SentenceTransformer("all-MiniLM-L6-v2")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+logging.info(f"Using device: {device}")
 
 
 def get_redis_client():
@@ -26,42 +66,44 @@ def get_redis_client():
 
 
 redis_client = get_redis_client()
-router = APIRouter()
 
 
-@router.post("/search_books", response_model=SearchResponse)
+@router.post("/search_books")
 async def search_books(request: Request, payload: SearchRequest):
     query = payload.query.strip().lower()
-    print(f"Received query: {query}")
+    logging.info(f"Received search query: {query}")
 
     if contains_profanity(query):
         raise HTTPException(status_code=403, detail="Profanity is not allowed.")
 
     # Check Redis cache
+    cache_key = f"books:{query}"
+    # Check Redis cache
     cached_results = redis_client.get(f"books:{query}")
     if cached_results:
         return SearchResponse(recommendations=json.loads(cached_results))
 
-    # Retrieve clients from the app state.
-    open_library_client = request.app.state.open_library_client
-    llm_client = request.app.state.llm_client
+    # Ensure embeddings and metadata are loaded
+    if document_embeddings is None or books_metadata is None:
+        raise HTTPException(
+            status_code=500, detail="Server error: book data not loaded."
+        )
 
-    # Await the extraction of keywords.
-    keywords = await llm_client.extract_keywords(query)
-    print("Extracted keywords:", keywords)
+    # Generate query embedding
+    query_embedding = create_vector_embedding(model, query, device)
 
-    # Search OpenLibrary with the refined keywords.
-    search_results = await open_library_client.search(keywords)
-
-    books = search_results.get("docs", [])
-
-    # Process raw OpenLibrary docs into the proper book format.
-    processed_books = process_results({"docs": books})
-    print("Processed books:", processed_books)
-
-    # # Cache the processed results
-    redis_client.setex(
-        f"books:{query}", 3600, json.dumps([b.dict() for b in processed_books])
+    # Compute similarity scores
+    similarity_scores = calculate_similarity_scores(
+        query_embedding, document_embeddings
     )
 
-    return SearchResponse(recommendations=processed_books)
+    # Retrieve top 5 recommended books
+    top_books = get_top_k_books(similarity_scores, books_metadata, k=5)
+    print("Top books:", top_books)
+    # Cache results
+    redis_client.setex(cache_key, 3600, json.dumps(top_books))
+
+    logging.info(f"Top recommended books: {[book['title'] for book in top_books]}")
+    
+    json_compatible_item_data = jsonable_encoder(top_books)
+    return JSONResponse(content=json_compatible_item_data)
