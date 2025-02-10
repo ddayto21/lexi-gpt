@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from app.schemas.search_books import Book, SearchRequest, SearchResponse
+from app.schemas.search_books import SearchRequest, SearchResponse
 
 from app.services.profanity import contains_profanity
 from sentence_transformers import SentenceTransformer
@@ -20,34 +20,13 @@ import redis
 import logging
 import numpy as np
 import torch
-from pathlib import Path
 
 
+# Initialize router
 router = APIRouter()
 
-# Load embeddings and metadata once during startup
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-EMBEDDINGS_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "embedding_outputs.json"
-BOOKS_METADATA_FILE = (
-    BASE_DIR / "app" / "data" / "book_metadata" / "books_metadata.json"
-)
 
-logging.info("Loading book embeddings and metadata into memory...")
-try:
-    document_embeddings = load_book_embeddings(str(EMBEDDINGS_FILE))
-    books_metadata = load_books_metadata(str(BOOKS_METADATA_FILE))
-    logging.info(f"Successfully loaded {len(books_metadata)} books and embeddings.")
-except Exception as e:
-    logging.error(f"Failed to load book embeddings or metadata: {e}")
-    document_embeddings, books_metadata = None, None
-
-# Load SentenceTransformer model
-logging.info("Initializing SentenceTransformer model...")
-model = SentenceTransformer("all-MiniLM-L6-v2")
-device = "cuda" if torch.cuda.is_available() else "cpu"
-logging.info(f"Using device: {device}")
-
-
+# Redis Client Setup
 def get_redis_client():
     try:
         client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
@@ -68,42 +47,72 @@ def get_redis_client():
 redis_client = get_redis_client()
 
 
-@router.post("/search_books")
+@router.post("/search_books", response_model=SearchResponse)
 async def search_books(request: Request, payload: SearchRequest):
-    query = payload.query.strip().lower()
-    logging.info(f"Received search query: {query}")
+    """Handles book search queries using semantic similarity."""
 
+    query = payload.query.strip().lower()
+    logging.info(f"Processing search query: '{query}'")
+
+    # Profanity Filter
     if contains_profanity(query):
         raise HTTPException(status_code=403, detail="Profanity is not allowed.")
 
+    # ✅ Ensure model & device are available
+    model = getattr(request.app.state, "model", None)
+    device = getattr(request.app.state, "device", "cpu")
+
+    if model is None:
+        logging.error("Model is not loaded in application state.")
+        raise HTTPException(
+            status_code=500, detail="Server error: Model not initialized."
+        )
+
+    # ✅ Ensure embeddings & metadata are available
+    document_embeddings = getattr(request.app.state, "document_embeddings", None)
+    books_metadata = getattr(request.app.state, "books_metadata", None)
+
+    if document_embeddings is None or books_metadata is None:
+        logging.error("Book embeddings or metadata are not loaded.")
+        raise HTTPException(
+            status_code=500, detail="Server error: Book data not available."
+        )
+
     # Check Redis cache
     cache_key = f"books:{query}"
-    # Check Redis cache
-    cached_results = redis_client.get(f"books:{query}")
+    cached_results = redis_client.get(cache_key)
     if cached_results:
-        return SearchResponse(recommendations=json.loads(cached_results))
+        logging.info("Cache hit: Returning cached search results.")
+        return JSONResponse(content=json.loads(cached_results))
 
     # Ensure embeddings and metadata are loaded
     if document_embeddings is None or books_metadata is None:
+        logging.error("Book embeddings or metadata are not loaded.")
         raise HTTPException(
-            status_code=500, detail="Server error: book data not loaded."
+            status_code=500, detail="Server error: book data not available."
         )
 
-    # Generate query embedding
-    query_embedding = create_vector_embedding(model, query, device)
+    try:
+        # Generate query embedding
+        query_embedding = create_vector_embedding(model, query, device)
 
-    # Compute similarity scores
-    similarity_scores = calculate_similarity_scores(
-        query_embedding, document_embeddings
-    )
+        # Compute similarity scores
+        similarity_scores = calculate_similarity_scores(
+            query_embedding, document_embeddings
+        )
 
-    # Retrieve top 5 recommended books
-    top_books = get_top_k_books(similarity_scores, books_metadata, k=5)
-    print("Top books:", top_books)
-    # Cache results
-    redis_client.setex(cache_key, 3600, json.dumps(top_books))
+        # Retrieve top 5 recommended books
+        top_books = get_top_k_books(similarity_scores, books_metadata, k=5)
 
-    logging.info(f"Top recommended books: {[book['title'] for book in top_books]}")
-    
-    json_compatible_item_data = jsonable_encoder(top_books)
-    return JSONResponse(content=json_compatible_item_data)
+        # Cache results in Redis (1-hour expiration)
+        redis_client.setex(cache_key, 3600, json.dumps(top_books))
+
+        logging.info(f"Returning top {len(top_books)} books for query '{query}'")
+
+        return JSONResponse(content=jsonable_encoder(top_books))
+
+    except Exception as e:
+        logging.error(f"Search failed: {e}")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while processing your request."
+        )
