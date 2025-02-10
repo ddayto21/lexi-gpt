@@ -9,15 +9,24 @@ This guide walks you through setting up the development environment for the proj
 1. [Prerequisites](#prerequisites)
 2. [Installing Dependencies](#installing-dependencies)
    - [Redis](#install-redis)
-3. [Run Backend Application](#running-the-backend)
+3. [Run Development Server](#start-development-server)
 
 ---
 
+## Build Docker Image
+
+```bash
+docker build -t book-search-dev:latest .
+```
+
+## Run Docker Container
+
+```bash
+docker run --name dev-container -p 8000:8000  book-search-dev
+```
+
 ## Prerequisites
 
-Ensure you have the following installed before proceeding:
-
-- **[Poetry](https://python-poetry.org/)** – Dependency and package manager for Python.
 - **[Redis](https://redis.io/)** – Caching server for session storage and fast lookups.
 - **[Homebrew](https://brew.sh/)** (MacOS only) – Package manager for installing Redis.
 
@@ -41,22 +50,16 @@ Once installed, start the Redis server:
 redis-server
 ```
 
+## Start Development Server
+
 To start the backend server, navigate to the `backend` directory and run:
 
 ```bash
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+fastapi dev app/main.py
 ```
 
 The backend should now be running. You can test it by visiting:
 
 ```bash
 http://localhost:8000/docs
-```
-
-This will open the Swagger UI, where you can interact with the API.
-
-## Running Tests
-
-```bash
-poetry run pytest
 ```
