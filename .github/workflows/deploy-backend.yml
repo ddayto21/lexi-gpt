@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy containers AWS ECS
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install AWS CLI
         run: |
@@ -33,15 +33,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+          
+      - name: Retrieve Redis Password from AWS Secrets Manager
+        run: |
+          REDIS_PASSWORD=$(aws secretsmanager get-secret-value \
+            --secret-id redis_password \
+            --query SecretString \
+            --output text)
+          echo "REDIS_PASSWORD=$REDIS_PASSWORD" >> $GITHUB_ENV
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build Docker image
+      - name: Build Docker image 
         working-directory: ./backend
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --provenance=false \
+            --build-arg REDIS_PASSWORD="${REDIS_PASSWORD}" \
             -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest \
             --load .
 
@@ -51,6 +61,6 @@ jobs:
 
       - name: Push Docker image
         run: docker push 312093527157.dkr.ecr.us-east-2.amazonaws.com/book-search-backend-service:latest
-        
+
       - name: Update the ECS Service
         run: aws ecs update-service --cluster ecs-cluster-fast-api--cluster --service rest-api-load-balancer-service --force-new-deployment --region us-east-2

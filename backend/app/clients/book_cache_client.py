@@ -3,6 +3,7 @@
 import json
 import redis
 import os
+import logging
 
 
 class BookCacheClient:
@@ -13,15 +14,36 @@ class BookCacheClient:
     - Normalizes keys by trimming and lowercasing query strings.
     """
 
-    def __init__(self, host=None, port=None, db=0, default_ttl=3600):
-        self.host = host or os.getenv("REDIS_HOST", "localhost")
+    def __init__(self, host=None, password=None, port=None, db=0, default_ttl=3600):
+        self.host = host or os.getenv("REDIS_HOST", "redis")
         self.port = port or int(os.getenv("REDIS_PORT", 6379))
+        self.password = password or os.getenv("REDIS_PASSWORD", None)
         self.db = db
         self.default_ttl = default_ttl
-        # Create a redis connection; for large apps, you'd handle connect, ping, etc.
-        self.redis = redis.Redis(
-            host=self.host, port=self.port, db=self.db, decode_responses=True
-        )
+
+        try:
+            self.redis = redis.Redis(
+                host=self.host,
+                port=self.port,
+                db=self.db,
+                password=self.password,
+                decode_responses=True,
+            )
+            self.ping_redis()
+            logging.info(f"Connected to Redis at {self.host}:{self.port}")
+        except redis.ConnectionError as e:
+            logging.error(f"Failed to connect to Redis: {e}")
+            self.redis = None  # Prevents failures in other methods
+
+    def ping_redis(self):
+        """Check if caching service is available."""
+
+        if self.redis:
+            try:
+                return self.redis.ping()
+            except redis.ConnectionError as e:
+                logging.error(f"Failed to ping Redis: {e}")
+                return False
 
     def _normalize_key(self, query: str) -> str:
         """

@@ -1,49 +1,25 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    # Ensures we always get the latest image
-    pull_policy: always
-    # Download the llama3.2 model, then serve on port 11435
-    command: >
-      bash -c "ollama pull llama3.2 &&
-               OLLAMA_HOST=127.0.0.1:11435 ollama serve"
-    ports:
-      - "11435:11435"
-    # Store model files in a named volume so it’s not re-downloaded each time:
-    volumes:
-      - ollama:/root/.ollama
-    restart: unless-stopped
-
-  cache:
-    image: redis:6.2-alpine
-    command: redis-server --requirepass $REDIS_PASSWORD
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    ports:
-      - "6379:6379"
-
   api:
-    container_name: book-search-app
-    build:
-      context: .
-      dockerfile: Dockerfile
-      # Optional: pass DEV=true to install dev dependencies
-      args:
-        DEV: "true"
+    build: .
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}  # Injected via AWS Secrets Manager
     ports:
       - "8000:8000"
-    depends_on:
-      - cache
-      - ollama
-    environment:
-      REDIS_HOST: cache
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: poetry run uvicorn app.main:app --reload --host 0.0.0.0
+
+  redis:
+    image: "redis:alpine"
+    restart: always
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports:
+      - "6379:6379"
     volumes:
-      - ./:/app  # Live-reload code changes
-      - /app/.venv  # Keep the venv persistent
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf  # Mount the Redis config file
+      - redis_data:/data  # Persistent storage
+
+
 volumes:
-  ollama:
-    driver: local
+  redis_data:

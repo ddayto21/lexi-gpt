@@ -71,15 +71,15 @@ async def lifespan(app: FastAPI):
         logging.error(f"Error loading book data: {e}")
         app.state.document_embeddings = None
         app.state.books_metadata = None
-
+    # Initialize Redis cache client
     try:
-        book_cache = BookCacheClient(default_ttl=3600)
-        book_cache.redis.ping()  # Ensure Redis is reachable
-        app.state.book_cache = book_cache
+        app.state.book_cache = BookCacheClient()
         logging.info("Redis connection successful.")
+       
     except Exception as e:
         logging.error(f"Failed to connect to Redis: {e}")
-        app.state.book_cache = None  # Prevent crash
+        app.state.book_cache = None
+
 
     yield  # Application runs here
 

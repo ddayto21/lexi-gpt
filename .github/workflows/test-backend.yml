@@ -10,12 +10,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      API_URL: ${{ secrets.API_URL }}
-      INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
-      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
-      LLM_REFINE_ENDPOINT: ${{ secrets.LLM_REFINE_ENDPOINT }}
-      LLM_ENHANCE_ENDPOINT: ${{ secrets.LLM_ENHANCE_ENDPOINT }}
 
     steps:
       - name: Checkout repository
@@ -34,7 +28,6 @@ jobs:
             sleep 2
           done
           echo "API is ready!"
-
 
       - name: Tear Down Containers
         run: |
