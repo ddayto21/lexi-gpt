@@ -30,11 +30,17 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 BOOK_EMBEDDINGS_FILE = (
     BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
 )
 BOOK_METADATA_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
+
+# Get allowed origin from environment variable
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
+# During local runtime, this variable is deinfe in the .env file
+# During production runtime, the FRONTEND_ORIGIN variable is set in the task definition (AWS ECS).
 
 
 # Ensure subprocesses terminate properly
@@ -75,11 +81,10 @@ async def lifespan(app: FastAPI):
     try:
         app.state.book_cache = BookCacheClient()
         logging.info("Redis connection successful.")
-       
+
     except Exception as e:
         logging.error(f"Failed to connect to Redis: {e}")
         app.state.book_cache = None
-
 
     yield  # Application runs here
 
@@ -97,9 +102,7 @@ app = FastAPI(lifespan=lifespan, redirect_slashes=False)
 # CORS Middleware Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://main.d2hvd5sv2imel0.amplifyapp.com",
-    ],
+    allow_origins=FRONTEND_ORIGIN,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
