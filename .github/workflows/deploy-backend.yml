@@ -6,11 +6,6 @@ on:
       - main
     paths:
       - "backend/**"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "backend/**"
 
 jobs:
   deploy-backend:
@@ -33,19 +28,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-          
       - name: Retrieve Redis Password from AWS Secrets Manager
         run: |
           REDIS_PASSWORD=$(aws secretsmanager get-secret-value \
             --secret-id redis_password \
             --query SecretString \
-            --output text)
+            --output text | jq -r '.')
           echo "REDIS_PASSWORD=$REDIS_PASSWORD" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build Docker image 
+      - name: Build Docker image
         working-directory: ./backend
         run: |
           docker buildx build \
