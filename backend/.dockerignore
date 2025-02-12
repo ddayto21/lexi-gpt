@@ -1,3 +1,5 @@
+ecs/
+
 # Ignore environment files
 .env
 .env.*
