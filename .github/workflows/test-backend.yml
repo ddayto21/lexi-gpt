@@ -1,7 +1,7 @@
 name: Backend Tests
 
 on:
-  pull_request:
+  push:
     paths:
       - "backend/**"
     branches:
@@ -11,25 +11,35 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 5
+
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build and Start Containers
+      - name: Set up Docker Compose
         run: |
           cd backend
-          docker compose up --build -d
+          docker compose up --build -d api
 
       - name: Wait for API to be Ready
         run: |
-          echo "Waiting for API..."
-          for i in {1..30}; do
-            curl --silent --fail http://localhost:8000/openapi.json && break
-            sleep 2
-          done
+          echo "Waiting for API to be available..."
+          timeout 60 bash -c 'until nc -z localhost 8000; do sleep 2; done' || (echo "API failed to start" && exit 1)
           echo "API is ready!"
 
       - name: Tear Down Containers
+        if: always()
         run: |
           cd backend
           docker compose down
