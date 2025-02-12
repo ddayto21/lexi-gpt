@@ -4,6 +4,7 @@ services:
   api:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}  # Use local Redis password
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN}  # Allow CORS from local frontend
     volumes:
       - .:/code  # Mount local code for live updates
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
