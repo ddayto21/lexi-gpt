@@ -1,6 +1,6 @@
 import type { SearchRequest, SearchResponse } from "../../types/api";
 
-const BASE_URL = "https://ecs-load-balancer-fast-api-new-1744878951.us-east-2.elb.amazonaws.com"
+const BASE_URL = "https://main.d2hvd5sv2imel0.amplifyapp.com/api"
 
 export async function searchBooks(query: string): Promise<SearchResponse> {
   console.log(`Searching for books with query: ${query}`);
