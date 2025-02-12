@@ -2,11 +2,13 @@ services:
   api:
     build: .
     depends_on:
-      - redis
+      - redis # Ensures the caching service is started before the API
+      - ollama # Ensures that the Ollama service is started before the API
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}  # Injected via AWS Secrets Manager
+      - OLLAMA_BASE_URL=http://ollama:11434  # Add Ollama service URL
     ports:
       - "8000:8000"
 
@@ -20,6 +22,17 @@ services:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf  # Mount the Redis config file
       - redis_data:/data  # Persistent storage
 
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    volumes:
+      - ollama:/root/.ollama  # Persist downloaded models
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    ports:
+      - "11434:11434"  # Expose Ollama API port
 
 volumes:
   redis_data:
+  ollama: {}  # Ensure Ollama volume persists model downloads
