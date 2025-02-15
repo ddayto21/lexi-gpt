@@ -79,5 +79,5 @@ if __name__ == "__main__":
     client = DeepSeekAPIClient(api_key=API_KEY)
 
     prompt = "Provide 5 book recommendations."
-    response = client.generate_text(prompt, model="deepseek-chat", stream=False)
+    response = client.generate_text(prompt, model="deepseek-chat", stream=True)
     print(response)
