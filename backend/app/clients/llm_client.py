@@ -32,17 +32,59 @@ class DeepSeekAPIClient:
             "Authorization": f"Bearer {self.api_key}",
         }
 
+    def get_token_balance(self) -> dict:
+        """
+        Query the available token balance from the DeepSeek API.
+
+        Returns:
+            dict: A dictionary containing the token balance information.
+        """
+
+        balance_url = "https://api.deepseek.com/user/balance"
+
+        try:
+            response = requests.get(balance_url, headers=self.headers)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            return response.json()  # Return the JSON response
+        except requests.exceptions.RequestException as e:
+            print(f"Error querying token balance: {e}")
+            return {"error": str(e)}
+
     async def async_stream(
         self, model: str, messages: List[Dict], temperature: float
     ) -> AsyncGenerator[str, None]:
-        """Async generator that streams responses from the DeepSeek API.
+        """
+        Asynchronous generator that streams responses from the DeepSeek API.
+
+        This method sends a POST request to the DeepSeek API with the specified
+        model, messages, and temperature parameters. It then listens for the streamed
+        response, processes each incoming line, and yields chunks of text as they
+        arrive.
+
+        Args:
+            model (str): The DeepSeek model identifier (e.g., "deepseek-chat").
+            messages (List[Dict]): A list of messages forming the conversation history.
+                                   Each message is a dict with keys like "role" and "content".
+            temperature (float): Controls the randomness of the model's response.
 
         Yields:
-            str: Chunks of generated text as they arrive.
+            str: Chunks of generated text from the API as they arrive.
+
+        Example:
+            async for chunk in client.async_stream(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": "Tell me about AI."}],
+                temperature=0.7
+            ):
+                print(chunk, end="", flush=True)
         """
-        # Create an asynchronous HTTP client.
-        async with httpx.AsyncClient() as client:
-            # Open a streaming response from the LLM provider API.
+        # Create an asynchronous HTTP client to manage the connection.
+
+        async with httpx.AsyncClient(
+            http2=True,
+            timeout=httpx.Timeout(connect=10.0, read=None, write=10.0, pool=10.0),
+        ) as client:
+            # Send a POST request with streaming enabled. The API will send back lines of data.
             async with client.stream(
                 "POST",
                 self.base_url,
@@ -51,23 +93,26 @@ class DeepSeekAPIClient:
                     "model": model,
                     "messages": messages,
                     "temperature": temperature,
-                    "stream": True,  # Ask the API to stream the response.
+                    "stream": True,  # Enable streaming mode in the request.
                 },
             ) as response:
-                response.raise_for_status()  # Raise an error if the request was unsuccessful.
-                # Process each line in the streaming response.
+                # Raise an error if the request was unsuccessful.
+                response.raise_for_status()
+
+                # Iterate over each line in the streamed response.
                 async for line in response.aiter_lines():
-                    # Check if the line starts with "data: ", which indicates a valid data line.
+                    # Check that the line starts with the expected prefix.
                     if line.startswith("data: "):
                         try:
-                            # Parse the JSON data after "data: "
+                            # Remove the "data: " prefix and parse the remaining JSON.
                             json_data = json.loads(line[6:])
-                            # Extract the content from the first choice's delta.
+                            # Extract the 'content' from the first choice's delta.
                             chunk = json_data["choices"][0]["delta"].get("content", "")
+                            # If a chunk exists, yield it immediately.
                             if chunk:
-                                yield chunk  # Yield this chunk to the caller.
+                                yield chunk
                         except json.JSONDecodeError:
-                            # If the line is not valid JSON, skip it.
+                            # If JSON parsing fails, skip this line.
                             continue
 
     def sync_stream(
@@ -110,11 +155,32 @@ class DeepSeekAPIClient:
 
 
 # -----------------------------------------------------------------------------
+# Helper function to read a multi-line prompt.
+# The user can type multiple lines. When finished, they type '/send' on a new line.
+# -----------------------------------------------------------------------------
+def read_multiline_prompt() -> str:
+    """
+    Read multi-line input from the user until '/send' is entered on a new line.
+    Returns:
+        The full prompt as a single string.
+    """
+    print("Enter your prompt (type '/send' on a new line when finished):")
+    lines = []
+    while True:
+        line = input()
+        # When user types '/send', end the input collection.
+        if line.strip() == "/send":
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------------------------
 # Main program entry point.
 # This section sets up an interactive REPL so you can ask multiple questions.
 #
 # Example to run the program in the terminal:
-#   python app/clients/llm_client.py --model deepseek-chat --temperature 0.9 --async-mode
+#   python3 app/clients/llm_client.py --model deepseek-chat --temperature 0.9 --async-mode
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -156,14 +222,16 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Prompt the user to enter a prompt interactively in the terminal.
-    user_prompt = input("Enter your prompt: ")
-    # Build the messages list expected by the API.
-    messages = [{"role": "user", "content": user_prompt}]
+    # user_prompt = input("Enter your prompt: ")
+    # # Build the messages list expected by the API.
+    # messages = [{"role": "user", "content": user_prompt}]
 
     # Create an instance of the DeepSeekAPIClient.
     # The API key is loaded from the environment if not provided.
     client = DeepSeekAPIClient()
-
+    # Query and display the token balance
+    token_balance = client.get_token_balance()
+    print(f"Token Balance: {token_balance}")
     try:
         # If asynchronous mode is enabled, run the async REPL.
         if args.async_mode:
@@ -171,7 +239,8 @@ if __name__ == "__main__":
             async def run_async_repl():
                 while True:
                     # Prompt the user to enter their question.
-                    user_input = input("Enter your prompt (or type 'quit' to exit): ")
+                    # user_input = input("Enter your prompt (or type 'quit' to exit): ")
+                    user_input = read_multiline_prompt()
                     if user_input.strip().lower() == "quit":
                         print("Exiting interactive session.")
                         break
