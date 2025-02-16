@@ -22,6 +22,7 @@ from app.services.semantic_search import (
     get_top_k_books,
 )
 
+from app.services.preprocessing import preprocess_book
 
 import json
 import redis
@@ -114,7 +115,7 @@ async def search_books(request: Request, payload: SearchRequest):
         # ---------------------------
 
         # Build a list of concise summaries for each top book.
-        book_summaries = [preprocessing(book) for book in top_books]
+        book_summaries = [preprocess_book(book) for book in top_books]
 
         # Construct the prompt for the LLM.
         llm_prompt = (
