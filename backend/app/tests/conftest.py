@@ -80,3 +80,23 @@ def summaries_fixture():
         "long shadow by erin hunter (2008). Keywords: cat, fantasy, fantasy fiction",
         "forest secret by erin hunter (2003). Keywords: cat, fantasy, fantasy fiction",
     ]
+
+
+@pytest.fixture
+def prompt_fixture(query_fixture, summaries_fixture) -> str:
+    """
+    Returns the prompt string constructed from the query and book summaries.
+    """
+    from app.services.rag_pipeline import construct_model_prompt
+
+    return construct_model_prompt(query_fixture, summaries_fixture)
+
+
+@pytest.fixture
+def messages_fixture(prompt_fixture) -> list:
+    """
+    Returns the conversation messages constructed from the prompt.
+    """
+    from app.services.rag_pipeline import construct_messages
+
+    return construct_messages(prompt_fixture)
