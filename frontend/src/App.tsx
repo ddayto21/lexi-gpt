@@ -1,56 +1,44 @@
+// src/App.tsx
 import React, { useState } from "react";
-import { SearchBar } from "./components/SearchBar";
-import type { Book } from "../types/api";
-import { searchBooks } from "./services/api";
-import { CSSProperties } from "react";
 import { StreamComponent } from "./components/StreamComponent";
+import { CSSProperties } from "react";
 
 const App: React.FC = () => {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
 
-  const handleSearch = async (query: string) => {
-    setError(null);
-    try {
-      const data = await searchBooks(query);
-      setBooks(data.recommendations || []);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(`Failed to fetch books: ${err.message}. Please try again.`);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+  const handleSend = () => {
+    if (query.trim()) {
+      setSubmittedQuery(query.trim());
     }
   };
 
   return (
     <div style={styles.appContainer}>
-      <h1 style={styles.title}>Search for a book</h1>
+      <header style={styles.header}>
+        <h1>Book Search Chat</h1>
+      </header>
 
-      <StreamComponent />
+      <div style={styles.chatContainer}>
+        {submittedQuery ? (
+          <StreamComponent query={submittedQuery} />
+        ) : (
+          <p>Type your query and click "Send" to get recommendations.</p>
+        )}
+      </div>
 
-      {/* Fixed SearchBar */}
-      {/* <div style={styles.searchBarWrapper}>
-        <SearchBar onSearch={handleSearch} />
-      </div> */}
-
-      {/* {error && <p style={styles.error}>{error}</p>} */}
-
-      {/* Scrollable results container */}
-      {/* <div style={styles.resultsContainer}>
-        {books.map((book, index) => (
-          <div key={index} style={styles.bookCard}>
-            <h3>{book.title}</h3>
-            <p>
-              <strong>Author(s):</strong> {book.authors?.join(", ") || "N/A"}
-            </p>
-            <p>
-              <strong>Description:</strong>{" "}
-              {book.description || "No description"}
-            </p>
-          </div>
-        ))}
-      </div> */}
+      <div style={styles.inputContainer}>
+        <input
+          type="text"
+          placeholder="Search for a book..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={styles.input}
+        />
+        <button onClick={handleSend} style={styles.button}>
+          Send
+        </button>
+      </div>
     </div>
   );
 };
@@ -59,48 +47,55 @@ const styles: { [key: string]: CSSProperties } = {
   appContainer: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
     height: "100vh",
-    backgroundColor: "#0d0d0d",
-    color: "#f0f0f0",
+    backgroundColor: "#343541", // Dark background similar to ChatGPT dark mode.
+    color: "#ffffff", // White text.
     fontFamily: "Inter, sans-serif",
-    // Prevents unwanted body scrolling
     overflow: "hidden",
   },
-  title: {
+  header: {
+    padding: "1rem",
+    backgroundColor: "#202123", // A darker header background.
+    textAlign: "center",
+  },
+  headerTitle: {
     fontSize: "24px",
     fontWeight: "bold",
-    marginTop: "20px",
-    marginBottom: "10px",
+    margin: 0,
   },
-  searchBarWrapper: {
-    position: "sticky",
-    top: "0",
-    zIndex: 10,
-    backgroundColor: "#0d0d0d",
-    width: "100%",
-    display: "flex",
-    justifyContent: "center",
-    padding: "10px 0",
-  },
-  error: {
-    color: "red",
-    marginTop: "10px",
-  },
-  resultsContainer: {
+  chatContainer: {
     flex: 1,
-    width: "100%",
-    maxWidth: "600px",
     overflowY: "auto",
-    paddingTop: "10px",
+    padding: "1rem",
+    backgroundColor: "#343541",
   },
-  bookCard: {
-    backgroundColor: "#1e1e1e",
-    padding: "15px",
-    borderRadius: "10px",
-    marginBottom: "10px",
-    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.5)",
+  placeholderText: {
+    color: "#c9c9c9",
+    fontStyle: "italic",
+  },
+  inputContainer: {
+    display: "flex",
+    padding: "1rem",
+    backgroundColor: "#202123",
+  },
+  input: {
+    flex: 1,
+    padding: "0.75rem",
+    fontSize: "1rem",
+    borderRadius: "4px",
+    border: "1px solid #555",
+    backgroundColor: "#3c3f41",
+    color: "#fff",
+    marginRight: "0.5rem",
+  },
+  button: {
+    padding: "0.75rem 1.5rem",
+    fontSize: "1rem",
+    borderRadius: "4px",
+    backgroundColor: "#0084ff",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
   },
 };
-
 export default App;

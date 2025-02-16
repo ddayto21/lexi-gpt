@@ -1,4 +1,4 @@
-// frontend/src/components/StreamComponent.tsx
+// src/components/StreamComponent.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
@@ -7,12 +7,16 @@ interface Recommendation {
   description: string;
 }
 
-export function StreamComponent() {
+interface StreamComponentProps {
+  query: string;
+}
+
+export function StreamComponent({ query }: StreamComponentProps) {
   const [rawStream, setRawStream] = useState("");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Clean an incoming chunk by removing markdown markers.
+  // Remove markdown markers and extra whitespace.
   const cleanChunk = (chunk: string): string => {
     let cleaned = chunk.trim();
     if (cleaned.startsWith("```json")) {
@@ -29,16 +33,16 @@ export function StreamComponent() {
     const fetchData = async () => {
       await fetchEventSource("http://localhost:8000/search_books", {
         method: "POST",
-        body: JSON.stringify({ query: "anime similar to hunter x hunter" }),
+        body: JSON.stringify({ query }),
         headers: { "Content-Type": "application/json" },
         onmessage(ev) {
           console.log(`Received event: ${ev.event}`);
           const cleaned = cleanChunk(ev.data);
-          // If buffer doesn't end with space and cleaned chunk doesn't start with one, add a space.
+          // Insert space if needed.
           if (
             buffer &&
-            cleaned &&
             !buffer.endsWith(" ") &&
+            cleaned &&
             !cleaned.startsWith(" ")
           ) {
             buffer += " ";
@@ -46,17 +50,16 @@ export function StreamComponent() {
           buffer += cleaned;
           setRawStream(buffer);
 
-          // Try to parse the accumulated buffer as JSON.
+          // Try parsing JSON.
           try {
             const parsed = JSON.parse(buffer);
             if (Array.isArray(parsed)) {
               setRecommendations(parsed);
-              // Once parsed successfully, clear the buffer.
               buffer = "";
               setRawStream("");
             }
           } catch (e) {
-            // If parsing fails (incomplete JSON), continue buffering.
+            // Incomplete JSON, continue buffering.
           }
         },
         onerror(err) {
@@ -65,9 +68,8 @@ export function StreamComponent() {
       });
     };
     fetchData();
-  }, []);
+  }, [query]);
 
-  // Auto-scroll to bottom when new text arrives.
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -82,7 +84,9 @@ export function StreamComponent() {
         overflowY: "auto",
         whiteSpace: "pre-wrap",
         fontFamily: "monospace",
-        border: "1px solid #ccc",
+        backgroundColor: "#343541",
+        color: "#ffffff",
+        border: "1px solid #555",
         padding: "1rem",
       }}
     >
@@ -92,13 +96,16 @@ export function StreamComponent() {
             key={index}
             style={{
               marginBottom: "1rem",
-              padding: "0.5rem",
-              border: "1px solid #eee",
-              borderRadius: "4px",
+              padding: "1rem",
+              backgroundColor: "#202123",
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             }}
           >
-            <h3 style={{ margin: "0 0 0.5rem 0" }}>{rec.title}</h3>
-            <p style={{ margin: 0 }}>{rec.description}</p>
+            <h3 style={{ margin: "0 0 0.5rem 0", color: "#ffffff" }}>
+              {rec.title}
+            </h3>
+            <p style={{ margin: 0, color: "#c9c9c9" }}>{rec.description}</p>
           </div>
         ))
       ) : (
