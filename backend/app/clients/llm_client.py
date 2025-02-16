@@ -68,15 +68,10 @@ class DeepSeekAPIClient:
             temperature (float): Controls the randomness of the model's response.
 
         Yields:
-            str: Chunks of generated text from the API as they arrive.
+            str: Chunks of generated text from the API as they arrive, plus a final "[DONE]" message
+                 when the stream has finished.
 
-        Example:
-            async for chunk in client.async_stream(
-                model="deepseek-chat",
-                messages=[{"role": "user", "content": "Tell me about AI."}],
-                temperature=0.7
-            ):
-                print(chunk, end="", flush=True)
+
         """
         # Create an asynchronous HTTP client to manage the connection.
 
@@ -99,21 +94,20 @@ class DeepSeekAPIClient:
                 # Raise an error if the request was unsuccessful.
                 response.raise_for_status()
 
-                # Iterate over each line in the streamed response.
+                # Read each line in the streamed response.
                 async for line in response.aiter_lines():
-                    # Check that the line starts with the expected prefix.
                     if line.startswith("data: "):
                         try:
-                            # Remove the "data: " prefix and parse the remaining JSON.
+                            # Strip the "data: " prefix and parse JSON.
                             json_data = json.loads(line[6:])
-                            # Extract the 'content' from the first choice's delta.
+                            # Extract 'content' from the first choice's delta.
                             chunk = json_data["choices"][0]["delta"].get("content", "")
-                            # If a chunk exists, yield it immediately.
                             if chunk:
                                 yield chunk
                         except json.JSONDecodeError:
-                            # If JSON parsing fails, skip this line.
+                            # If parsing fails, skip this line.
                             continue
+                yield "[DONE]"  # Signal the end of the stream.
 
     def sync_stream(
         self, model: str, messages: List[Dict], temperature: float

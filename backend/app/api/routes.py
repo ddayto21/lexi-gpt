@@ -79,15 +79,26 @@ async def search_books(request: Request, payload: SearchRequest):
             status_code=500, detail="Server error: Book data not available."
         )
 
-    # 4. Check redis cache for existing results
-    book_cache: BookCacheClient = request.app.state.book_cache
-    if not book_cache:
-        logging.warning("Redis cache client unavailable. Proceeding without caching.")
-    cache_key = f"books:{query}"
-    cached_results = book_cache.get_books(cache_key) if book_cache else None
-    if cached_results:
-        logging.info("Cache hit: Returning cached search results.")
-        return JSONResponse(content=json.loads(cached_results))
+    # 3. Retrieve Book Embeddings & Metadata
+    document_embeddings = getattr(request.app.state, "document_embeddings", None)
+    books_metadata = getattr(request.app.state, "books_metadata", None)
+    if document_embeddings is None or books_metadata is None:
+        logging.error("Book data not loaded.")
+        raise HTTPException(
+            status_code=500, detail="Server error: Book data not available."
+        )
+
+    # 4. Check Redis Cache
+    # book_cache: BookCacheClient = request.app.state.book_cache
+    # if book_cache:
+    #     cache_key = f"books:{query}"
+    #     cached_results = book_cache.get_books(cache_key)
+    #     if cached_results:
+    #         logging.info("Cache hit: Returning cached search results.")
+    #         # Return immediately so no duplicate streaming occurs.
+    #         return JSONResponse(content=json.loads(cached_results))
+    # else:
+    #     logging.warning("Redis cache client unavailable. Proceeding without caching.")
 
     try:
         # ---------------------------
@@ -102,22 +113,12 @@ async def search_books(request: Request, payload: SearchRequest):
             query_embedding, document_embeddings
         )
 
-        # ---------------------------
-        #  6. Retrieve Top Book Recommendations
-        # ---------------------------
+        # 6. Retrieve Top Book Recommendations
         # Based on similarity scores, retrieve the top 5 recommended books.
         top_books = get_top_k_books(similarity_scores, books_metadata, k=5)
 
-        print("top_books", top_books)
-
-        # ---------------------------
         # 7. Construct the LLM Prompt
-        # ---------------------------
-
-        # Build a list of concise summaries for each top book.
         book_summaries = [preprocess_book(book) for book in top_books]
-
-        # Construct the prompt for the LLM.
         llm_prompt = (
             f"User query: '{query}'. RAG system has retrieved relevant book details:\n\n"
             + "\n".join(
@@ -130,9 +131,7 @@ async def search_books(request: Request, payload: SearchRequest):
             "Return only the JSON array."
         )
 
-        # ---------------------------
-        # 8. Initialize LLM Client and Prepare Conversation History
-        # ---------------------------
+        # 8. Prepare LLM Client & Streaming
         llm_client = DeepSeekAPIClient()
 
         messages = [
@@ -142,31 +141,21 @@ async def search_books(request: Request, payload: SearchRequest):
             },
             {"role": "user", "content": llm_prompt},
         ]
-        print("messages:")
-        print(messages)
+        # print("messages:")
+        # print(messages)
 
-        # ------------------------------------------------
-        # 9. Define the Streaming Response Generator
-        # ------------------------------------------------
+        # 8. Define a single streaming generator that yields chunks and then a final marker.
         async def generate():
-            """
-            Asynchronous generator that streams the LLM response directly in chunks.
-
-            This method calls the LLM Client's async_stream method and yields each chunk
-            as soon as it is received. The output is returned directly to the client without
-            further processing or wrapping.
-            """
             async for chunk in llm_client.async_stream(
-                model="deepseek-chat",  # Ensure this model identifier is correct for your use case.
+                model="deepseek-chat",
                 messages=messages,
-                temperature=0.9,
+                temperature=0.7,
             ):
-                # Optionally, print each chunk for debugging purposes.
                 print(chunk, end="", flush=True)
-                # Yield the chunk immediately.
-                yield chunk
+                # Yield each chunk prefixed with "data:" (SSE format).
+                yield f"data: {chunk}\n\n"
 
-        # Return the StreamingResponse to the client.
+        # 9. Return the StreamingResponse.
         return StreamingResponse(generate(), media_type="text/event-stream")
 
     except Exception as e:

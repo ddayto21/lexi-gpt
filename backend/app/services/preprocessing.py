@@ -1,14 +1,22 @@
 # app/services/preprocessing.py
 
 
-# Preprocess book details
 def preprocess_book(book: dict) -> str:
-    # Extract and format only the necessary details
-    title = book.get("title", "Unknown Title")
-    author = book.get("author", "Unknown Author")
-    year = book.get("year", "Unknown Year")
-    # Assume subjects is a comma-separated string; split, filter, and join the most relevant ones.
+    """
+    Optimizes book details into a concise summary containing only the essential information.
+
+    Args:
+        book (dict): A dictionary with book details (e.g., title, author, year, subjects).
+
+    Returns:
+        str: A concise, formatted summary string.
+    """
+    title = book.get("title", "Unknown Title").strip()
+    author = book.get("author", "Unknown Author").strip()
+    year = book.get("year", "Unknown Year").strip()
+
+    # Assume subjects is a comma-separated string; split it and take the top 3 keywords.
     subjects = book.get("subjects", "")
-    # For simplicity, take the first three keywords after splitting
-    keywords = ", ".join(subject.strip() for subject in subjects.split(",")[:3])
+    keywords = ", ".join([s.strip() for s in subjects.split(",") if s.strip()][:3])
+
     return f"{title} by {author} ({year}). Keywords: {keywords}"
