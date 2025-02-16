@@ -4,17 +4,15 @@ from abc import ABC, abstractmethod
 
 import httpx  # For making asynchronous HTTP requests
 import asyncio  # For running asynchronous code
-
-
-from typing import AsyncGenerator, Generator, List, Dict, Optional
-
 import json  # For parsing JSON responses
 import requests  # For making synchronous HTTP requests
+
+from typing import AsyncGenerator, Generator, List, Dict, Optional
 
 
 # -----------------------------------------------------------------------------
 # A client designed to interact with the DeepSeek API.
-# This client can stream responses either asynchronously or synchronously.
+# It supports both asynchronous and synchronous streaming of model responses.
 # -----------------------------------------------------------------------------
 class DeepSeekAPIClient:
     def __init__(
@@ -113,8 +111,12 @@ class DeepSeekAPIClient:
 
 # -----------------------------------------------------------------------------
 # Main program entry point.
-# This section handles command-line arguments and prompts the user for a prompt.
+# This section sets up an interactive REPL so you can ask multiple questions.
+#
+# Example to run the program in the terminal:
+#   python app/clients/llm_client.py --model deepseek-chat --temperature 0.9 --async-mode
 # -----------------------------------------------------------------------------
+
 if __name__ == "__main__":
     import argparse
     import sys
@@ -122,7 +124,10 @@ if __name__ == "__main__":
     def parse_args():
         """
         Parse command-line arguments.
-        The user can optionally specify the model, temperature, and async mode.
+        Options:
+            --model: Select the DeepSeek model (default: deepseek-chat).
+            --temperature: Set the temperature (default: 0.7).
+            --async-mode: Use asynchronous streaming (requires Python 3.7+).
         """
         parser = argparse.ArgumentParser(
             description="DeepSeek CLI Client - Chat with DeepSeek models"
@@ -151,53 +156,57 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Prompt the user to enter a prompt interactively in the terminal.
-    prompt_input = input("Enter your prompt: ")
+    user_prompt = input("Enter your prompt: ")
     # Build the messages list expected by the API.
-    messages = [{"role": "user", "content": prompt_input}]
+    messages = [{"role": "user", "content": user_prompt}]
 
     # Create an instance of the DeepSeekAPIClient.
     # The API key is loaded from the environment if not provided.
     client = DeepSeekAPIClient()
 
     try:
+        # If asynchronous mode is enabled, run the async REPL.
         if args.async_mode:
-            # If the user selected async mode, run the asynchronous streaming function.
-            async def run_async():
-                try:
-                    # Iterate over the response chunks as they stream in.
+
+            async def run_async_repl():
+                while True:
+                    # Prompt the user to enter their question.
+                    user_input = input("Enter your prompt (or type 'quit' to exit): ")
+                    if user_input.strip().lower() == "quit":
+                        print("Exiting interactive session.")
+                        break
+                    # Build the messages list expected by the API.
+                    messages = [{"role": "user", "content": user_input}]
+                    print("\n--- Answer ---")
+                    # Stream the response asynchronously, printing each chunk as it arrives.
                     async for chunk in client.async_stream(
                         model=args.model,
                         messages=messages,
                         temperature=args.temperature,
                     ):
-                        # Print each chunk without adding a new line.
                         print(chunk, end="", flush=True)
-                    print()  # Print a newline after the streaming is complete.
-                except httpx.HTTPStatusError as e:
-                    print(
-                        f"\nHTTP error occurred: {e.response.status_code} {e.response.reason_phrase}"
-                    )
-                except Exception as e:
-                    print(f"\nAn error occurred: {str(e)}")
+                    print("\n--------------\n")
 
-            # Run the asynchronous function.
-            asyncio.run(run_async())
+            asyncio.run(run_async_repl())
         else:
-            # If not in async mode, use the synchronous streaming method.
-            try:
+            # Synchronous REPL loop.
+            while True:
+                try:
+                    user_input = input("Enter your prompt (or type 'quit' to exit): ")
+                except KeyboardInterrupt:
+                    print("\nExiting interactive session.")
+                    break
+                if user_input.strip().lower() == "quit":
+                    print("Exiting interactive session.")
+                    break
+                messages = [{"role": "user", "content": user_input}]
+                print("\n--- Answer ---")
+                # Stream the response synchronously, printing each chunk as it arrives.
                 for chunk in client.sync_stream(
                     model=args.model, messages=messages, temperature=args.temperature
                 ):
-                    # Print each chunk as it arrives.
                     print(chunk, end="", flush=True)
-                # Newline after complete streaming.
-                print()
-            except requests.exceptions.HTTPError as e:
-                print(
-                    f"\nHTTP error occurred: {e.response.status_code} {e.response.reason_phrase}"
-                )
-            except Exception as e:
-                print(f"\nAn error occurred: {str(e)}")
+                print("\n--------------\n")
     except KeyboardInterrupt:
         # If the user presses Ctrl+C, handle the interruption gracefully.
         print("\n\nOperation interrupted by user")
