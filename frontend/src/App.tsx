@@ -3,6 +3,7 @@ import { SearchBar } from "./components/SearchBar";
 import type { Book } from "../types/api";
 import { searchBooks } from "./services/api";
 import { CSSProperties } from "react";
+import { StreamComponent } from "./components/StreamComponent";
 
 const App: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
@@ -26,15 +27,17 @@ const App: React.FC = () => {
     <div style={styles.appContainer}>
       <h1 style={styles.title}>Search for a book</h1>
 
-      {/* Fixed SearchBar */}
-      <div style={styles.searchBarWrapper}>
-        <SearchBar onSearch={handleSearch} />
-      </div>
+      <StreamComponent />
 
-      {error && <p style={styles.error}>{error}</p>}
+      {/* Fixed SearchBar */}
+      {/* <div style={styles.searchBarWrapper}>
+        <SearchBar onSearch={handleSearch} />
+      </div> */}
+
+      {/* {error && <p style={styles.error}>{error}</p>} */}
 
       {/* Scrollable results container */}
-      <div style={styles.resultsContainer}>
+      {/* <div style={styles.resultsContainer}>
         {books.map((book, index) => (
           <div key={index} style={styles.bookCard}>
             <h3>{book.title}</h3>
@@ -47,7 +50,7 @@ const App: React.FC = () => {
             </p>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };
