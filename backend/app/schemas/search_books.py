@@ -7,8 +7,10 @@ class Book(BaseModel):
     author: Optional[str] = Field(
         None, title="Author", description="The author of the book"
     )
-    subjects: Optional[List[str]] = Field(
-        None, title="Subjects", description="List of subjects the book belongs to"
+    subjects: List[str] = Field(
+        default_factory=list,
+        title="Subjects",
+        description="List of subjects the book belongs to",
     )
     year: Optional[str] = Field(
         None, title="Publication Year", description="Year the book was published"
@@ -30,10 +32,10 @@ class SearchResponse(BaseModel):
         title="Recommended Books",
         description="List of recommended books based on search query",
     )
-    message: Optional[str] = Field(
-        None,
+    message: str = Field(
+        ...,
         title="Message",
-        description="Optional message in case of errors or notifications",
+        description="A generated explanation of why the recommended books are relevant to the query",
     )
 
 
