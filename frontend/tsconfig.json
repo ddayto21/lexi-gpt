@@ -18,6 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],
+      "@data/*": ["src/data/*"],
       "@models/*": ["src/models/*"],
       "@utils/*": ["src/utils/*"],
       "@lib/*": ["src/lib/*"],

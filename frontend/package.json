@@ -14,6 +14,7 @@
     "autoprefixer": "^10.4.20",
     "cra-template": "1.2.0",
     "customize-cra": "^1.0.0",
+    "date-fns": "^4.1.0",
     "http-proxy-middleware": "^3.0.3",
     "lucide-react": "^0.475.0",
     "postcss": "^8.5.2",
