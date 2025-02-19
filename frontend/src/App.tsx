@@ -45,42 +45,70 @@ export default function App() {
     useChat(options);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white"></div>
+    <div className="flex flex-col h-screen bg-black text-white font-sans">
+      <div className="flex items-center justify-center py-3 bg-gray-900 border-b border-gray-700">
+        <h1 className="text-lg font-bold">AI Book Finder</h1>
+      </div>
+
       {/* Status/Error messages */}
-      <div className="p-4">
-        <p>Status: {status}</p>
+      <div className="px-4 py-2 border-b border-gray-700">
+        {" "}
+        <p className="text-sm">Status: {status}</p>
         {errorMessage && (
-          <div className="mt-2 p-2 bg-red-500 text-white rounded">
+          <div className="mt-2 p-2 bg-red-600 text-white rounded-md">
             Error: {errorMessage}
           </div>
         )}
       </div>
-
       {/* Chat messages */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {messages.map((msg, i) => {
           const content = formatContent(msg);
+          const isAssistant = msg.role === "assistant";
+
           return (
             <div
               key={i}
-              className={`max-w-xl ${
-                msg.role === "assistant"
-                  ? "self-start bg-white text-black rounded p-3"
-                  : "self-end bg-blue-500 text-white rounded p-3"
+              className={`flex items-start ${
+                isAssistant ? "justify-start" : "justify-end"
               }`}
             >
-              <div> {msg.role === "assistant" ? "Assistant" : "You"} </div>
-              <div> {content} </div>
+              {/* Avatar */}
+              {isAssistant ? (
+                <div className="mr-2 flex-none">
+                  {/* Replace this with an AI logo or image */}
+                  <div className="h-8 w-8 flex items-center justify-center bg-gray-700 rounded-full text-sm font-bold">
+                    AI
+                  </div>
+                </div>
+              ) : (
+                <div className="mr-2 flex-none">
+                  {/* Gradient avatar for user */}
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600" />
+                </div>
+              )}
+
+              {/* Message bubble */}
+              <div
+                className={`max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow ${
+                  isAssistant
+                    ? "bg-gray-800 rounded-bl-none"
+                    : "bg-blue-600 rounded-br-none"
+                }`}
+              >
+                <div className="text-sm leading-snug whitespace-pre-wrap">
+                  {content}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
-
+      
       {/* Input area */}
-      <div className="flex items-center gap-2 p-4 bg-gray-200 border-t border-gray-300">
+      <div className="flex items-center p-4 bg-gray-900 border-t border-gray-700">
         <input
-          className="flex-1 px-3 py-2 rounded border border-gray-400"
+          className="flex-1 px-4 py-2 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none mr-2"
           placeholder="Describe a book you are looking for..."
           value={input}
           onChange={handleInputChange}
@@ -89,7 +117,7 @@ export default function App() {
         <button
           onClick={handleSubmit}
           disabled={status === "submitted" || input === ""}
-          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+          className="px-5 py-2 bg-blue-600 text-white rounded-full disabled:opacity-50"
         >
           Send
         </button>
