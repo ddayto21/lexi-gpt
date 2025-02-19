@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useChat, type UseChatOptions, type Message } from "@ai-sdk/react";
 import { parseSseData } from "@utils/parse-sse-data";
+import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 
 export function formatContent(message: Message): string {
   if (
@@ -14,6 +15,8 @@ export function formatContent(message: Message): string {
 }
 
 export default function App() {
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const options: UseChatOptions = {
@@ -43,18 +46,37 @@ export default function App() {
 
   const { messages, input, status, setInput, handleInputChange, handleSubmit } =
     useChat(options);
-
   // Quick reply suggestions for users
   const quickReplies = [
-    "I'm into mystery novels",
-    "I love sci-fi adventures",
-    "Recommend a classic literature",
-    "Show me some thrillers",
+    {
+      icon: "🔎",
+      title: "Mystery",
+      content: "I'm into mystery novels",
+      description: "Explore thrilling stories full of suspense and secrets.",
+    },
+    {
+      icon: "🚀",
+      title: "Sci-Fi",
+      content: "I love sci-fi adventures",
+      description: "Discover futuristic worlds, space travel, and alien life.",
+    },
+    {
+      icon: "📚",
+      title: "Classics",
+      content: "Recommend a classic literature",
+      description: "Dive into timeless novels that shaped literary history.",
+    },
+    {
+      icon: "😱",
+      title: "Thrillers",
+      content: "Show me some thrillers",
+      description: "Fast-paced plots that keep you on the edge of your seat.",
+    },
   ];
-
-   // When a quick reply is clicked, update the hook's input.
-   const onQuickReplyClick = (reply: string) => {
+  // When a quick reply is clicked, update the hook's input.
+  const onQuickReplyClick = (reply: string) => {
     setInput(reply);
+    setShowSuggestions(false);
   };
 
   return (
@@ -89,10 +111,7 @@ export default function App() {
               {/* Avatar */}
               {isAssistant ? (
                 <div className="mr-2 flex-none">
-                  {/* Replace this with an AI logo or image */}
-                  <div className="h-8 w-8 flex items-center justify-center bg-gray-700 rounded-full text-sm font-bold">
-                    AI
-                  </div>
+                  <AiAvatar size="md" />
                 </div>
               ) : (
                 <div className="mr-2 flex-none">
@@ -117,7 +136,7 @@ export default function App() {
           );
         })}
 
-        {/* Typing indicator when AI is streaming */}
+        {/* Thinking indicator when AI is streaming */}
         {status === "submitted" && (
           <div className="flex items-start justify-start">
             <div className="mr-2 flex-none">
@@ -127,7 +146,7 @@ export default function App() {
             </div>
             <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow bg-gray-800 rounded-bl-none">
               <div className="text-sm leading-snug whitespace-pre-wrap animate-pulse">
-                Assistant is typing...
+                Assistant is thinking...
               </div>
             </div>
           </div>
@@ -135,20 +154,45 @@ export default function App() {
       </div>
 
       {/* Quick-Reply Suggestions */}
-      <div className="px-4 py-2 border-t border-gray-700">
-        <p className="mb-2 text-sm">Quick Suggestions:</p>
-        <div className="flex gap-2 flex-wrap">
-          {quickReplies.map((reply, index) => (
+      {showSuggestions && (
+        <div className="relative px-4 py-3 border-t border-neutral-800 bg-neutral-900">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-gray-200">Topics</p>
             <button
-              key={index}
-              onClick={() => onQuickReplyClick(reply)}
-              className="px-3 py-1 bg-gray-700 text-white rounded-full text-sm hover:bg-gray-600"
+              onClick={() => setShowSuggestions(false)}
+              className="text-gray-500 hover:text-gray-300 transition-colors"
+              aria-label="Close suggestions"
             >
-              {reply}
+              ✕
             </button>
-          ))}
+          </div>
+
+          {/* Two-column layout: each card is half-width on larger screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            {quickReplies.map((reply, index) => (
+              <button
+                key={index}
+                onClick={() => onQuickReplyClick(reply.content)}
+                className="flex items-center p-3 border border-neutral-700 bg-[#1a1a1a]
+                   hover:bg-[#2a2a2a] text-gray-300 rounded-md transition-colors"
+              >
+                {/* Icon on the left */}
+                <div className="mr-3 text-lg">{reply.icon}</div>
+
+                {/* Title & Description to the right of icon */}
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-gray-100">
+                    {reply.title}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {reply.description}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Input area */}
       <div className="flex items-center p-4 bg-gray-900 border-t border-gray-700">
