@@ -20,8 +20,9 @@ export interface SearchResponse {
 export interface Message {
   role: string; // "user" | "assistant" | "system"
   content: string;
+  parts?: { type: string; text: string }[];
 }
 
 
-/** Represents the conversation history */
+
 
