@@ -1,215 +1,99 @@
-// frontend/src/App.tsx
+// App.tsx
 import React, { useState } from "react";
-import { CSSProperties } from "react";
-import { FaArrowUp } from "react-icons/fa";
-import { StreamComponent } from "./components/StreamComponent";
+import { useChat, type UseChatOptions, type Message } from "@ai-sdk/react";
+import { parseSseData } from "@utils/parse-sse-data";
 
-// Represents a single message in the conversation log.
-interface Message {
-  role: "user" | "assistant";
-  content: string;
+export function formatContent(message: Message): string {
+  if (
+    message.role === "assistant" &&
+    message.content.trim().startsWith("data:")
+  ) {
+    return parseSseData(message.content);
+  }
+  return message.content;
 }
 
-const App: React.FC = () => {
-  const [query, setQuery] = useState("");
-  // Holds the submitted query that will be sent to the API.
-  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  // The index of the assistant message being updated.
-  const [activeAssistantIndex, setActiveAssistantIndex] = useState<
-    number | null
-  >(null);
+export default function App() {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Disable button if input is empty or if a response is already loading.
-  const isDisabled = !query.trim() || isLoading;
-
-  const handleSend = () => {
-    if (!query.trim() || isLoading) return;
-    const trimmedQuery = query.trim();
-    // Save the submitted query.
-    setSubmittedQuery(trimmedQuery);
-    // Append both the user message and a new empty assistant message in one call.
-    setMessages((prev) => {
-      const newMessages: Message[] = [
-        ...prev,
-        { role: "user", content: trimmedQuery },
-        { role: "assistant", content: "" },
-      ];
-      // Set activeAssistantIndex to the index of the new assistant message.
-      setActiveAssistantIndex(newMessages.length - 1);
-      return newMessages;
-    });
-    setIsLoading(true);
-    setQuery(""); // Clear the input field.
+  const options: UseChatOptions = {
+    api: "/api/completion",
+    streamProtocol: "text",
+    initialMessages: [
+      {
+        id: "1",
+        role: "assistant",
+        content:
+          "Hello! I can help you find a book. Please describe your interests.",
+      },
+    ],
+    onFinish: (message) => {
+      // Parse the raw SSE data before printing/logging.
+      const formattedMessage = parseSseData(message.content);
+      console.log("Finished streaming message:", formattedMessage);
+    },
+    onError: (error) => {
+      console.error("An error occurred:", error);
+      setErrorMessage(error.message || "An unknown error occurred.");
+    },
+    onResponse: (response) => {
+      console.log("Received HTTP response from server:", response);
+    },
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSend();
-    }
-  };
+  const { messages, input, status, handleInputChange, handleSubmit } =
+    useChat(options);
 
-  // Called on each update from the stream to update the current assistant message.
-  const handleStreamUpdate = (partialText: string) => {
-    if (activeAssistantIndex === null) return;
-    setMessages((prev) => {
-      const newMsgs = [...prev];
-      newMsgs[activeAssistantIndex] = {
-        ...newMsgs[activeAssistantIndex],
-        content: partialText,
-      };
-      return newMsgs;
-    });
-  };
-
-  // Called when the stream completes; reset loading state and active assistant index.
-  const handleStreamComplete = () => {
-    setIsLoading(false);
-    setActiveAssistantIndex(null);
-  };
   return (
-    <div style={styles.appContainer}>
-      <header style={styles.header}>
-        <h1 style={styles.headerTitle}>Book Search Chat</h1>
-      </header>
-
-      <div style={styles.chatContainer}>
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            style={
-              msg.role === "user"
-                ? styles.userBubbleContainer
-                : styles.assistantBubbleContainer
-            }
-          >
-            <div
-              style={
-                msg.role === "user" ? styles.userBubble : styles.assistantBubble
-              }
-            >
-              {msg.content}
-            </div>
+    <div className="flex flex-col h-screen bg-gray-100">
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white"></div>
+      {/* Status/Error messages */}
+      <div className="p-4">
+        <p>Status: {status}</p>
+        {errorMessage && (
+          <div className="mt-2 p-2 bg-red-500 text-white rounded">
+            Error: {errorMessage}
           </div>
-        ))}
-
-        {/* Render StreamComponent only if loading and submittedQuery exists */}
-        {isLoading && submittedQuery && (
-          <StreamComponent
-            query={submittedQuery}
-            onStreamUpdate={handleStreamUpdate}
-            onStreamComplete={handleStreamComplete}
-          />
         )}
       </div>
 
-      <div style={styles.inputContainer}>
+      {/* Chat messages */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {messages.map((msg, i) => {
+          const content = formatContent(msg);
+          return (
+            <div
+              key={i}
+              className={`max-w-xl ${
+                msg.role === "assistant"
+                  ? "self-start bg-white text-black rounded p-3"
+                  : "self-end bg-blue-500 text-white rounded p-3"
+              }`}
+            >
+              <div> {msg.role === "assistant" ? "Assistant" : "You"} </div>
+              <div> {content} </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Input area */}
+      <div className="flex items-center gap-2 p-4 bg-gray-200 border-t border-gray-300">
         <input
-          type="text"
-          placeholder="Send a message..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={styles.input}
-          disabled={isLoading}
+          className="flex-1 px-3 py-2 rounded border border-gray-400"
+          placeholder="Describe a book you are looking for..."
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
         />
         <button
-          onClick={handleSend}
-          style={{
-            ...styles.sendButton,
-            backgroundColor: isDisabled ? "#565869" : "#10a37f",
-            cursor: isDisabled ? "not-allowed" : "pointer",
-          }}
-          disabled={isDisabled}
+          onClick={handleSubmit}
+          disabled={status === "submitted" || input === ""}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
         >
-          <FaArrowUp
-            style={{
-              fontSize: "1.2rem",
-              color: isDisabled ? "#9ca0a6" : "#fff",
-            }}
-          />
+          Send
         </button>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: CSSProperties } = {
-  appContainer: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100vh",
-    backgroundColor: "#343541",
-    color: "#ffffff",
-    fontFamily: "Inter, sans-serif",
-    overflow: "hidden",
-  },
-  header: {
-    padding: "1rem",
-    backgroundColor: "#202123",
-    textAlign: "center",
-  },
-  headerTitle: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    margin: 0,
-  },
-  chatContainer: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "1rem",
-    backgroundColor: "#343541",
-  },
-  userBubbleContainer: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginBottom: "0.5rem",
-  },
-  userBubble: {
-    backgroundColor: "#10a37f",
-    padding: "0.75rem 1rem",
-    borderRadius: "1rem",
-    maxWidth: "70%",
-    whiteSpace: "pre-wrap",
-  },
-  assistantBubbleContainer: {
-    display: "flex",
-    justifyContent: "flex-start",
-    marginBottom: "0.5rem",
-  },
-  assistantBubble: {
-    backgroundColor: "#444654",
-    padding: "0.75rem 1rem",
-    borderRadius: "1rem",
-    maxWidth: "70%",
-    whiteSpace: "pre-wrap",
-  },
-  inputContainer: {
-    display: "flex",
-    padding: "1rem",
-    backgroundColor: "#202123",
-  },
-  input: {
-    flex: 1,
-    padding: "0.75rem",
-    fontSize: "1rem",
-    borderRadius: "4px",
-    border: "1px solid #555",
-    backgroundColor: "#3c3f41",
-    color: "#fff",
-    marginRight: "0.5rem",
-    outline: "none",
-  },
-  sendButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "none",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-};
-
-export default App;
+}
