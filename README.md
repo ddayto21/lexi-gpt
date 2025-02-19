@@ -1,32 +1,39 @@
-# 📖 LexiGPT: AI-Powered Recommendation Chatbot
+# LexiGPT: AI-Powered Recommendation Chatbot
 
-![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)
-![React](https://img.shields.io/badge/react-18.2.0-blue?logo=react)
-![DeepSeek](https://img.shields.io/badge/deepseek-v3-blue?logo=openai)
-![OpenAI](https://img.shields.io/badge/OpenAI-API-green?logo=openai)
-
-![Docs](https://img.shields.io/badge/docs-%F0%9F%93%96-blue)
-![Community](https://img.shields.io/badge/community-%F0%9F%92%AC-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![Build Status](https://img.shields.io/github/actions/workflow/status/ddayto21/lexi-gpt/deploy-backend.yml?style=flat-square&color=2E8B57&labelColor=1E1E1E&logo=github-actions&logoColor=white)
+![Last Commit](https://img.shields.io/github/last-commit/ddayto21/lexi-gpt?style=flat-square&color=FF8C00&labelColor=1E1E1E&logo=git&logoColor=white)
 
 **LexiGPT** is a **retrieval-augmented generation (RAG) chatbot** designed to provide **intelligent, personalized book recommendations**. It combines **semantic search** with **large language models (LLMs)** such as OpenAI and DeepSeek to process natural language queries. Built with **FastAPI** and a **React web interface**, LexiGPT enables **fast, accurate book discovery** through a conversational web interface.
 
-## **🚀 Features**
+## Core Features
 
-- **LLM-Powered Responses** → Uses OpenAI/DeepSeek to process book-related queries.
-- **Semantic Search with Vector Embeddings** → Finds books based on meaning, not just keywords.
-- **Real-Time Streaming** → Fast, chatbot-style recommendations.
-- **Multi-LLM Support** → Users can configure different language model providers.
-- **Highly Scalable API** → Built with **FastAPI** for high-performance search.
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat-square&logo=react&logoColor=white&color=dodgerblue&labelColor=gray)
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=flat-square&logo=python&logoColor=white&color=dodgerblue&labelColor=gray)
+
+- **LLM-Powered Responses**: Utilizes OpenAI and DeepSeek to generate intelligent book recommendations.
+- **Semantic Search**: Employs vector embeddings to identify books based on contextual relevance rather than keywords.
+- **Real-Time Streaming**: Delivers instantaneous, conversational book recommendations.
+- **Multi-LLM Support**: Allows configuration of various language model providers.
+- **REST API**: Built with FastAPI to ensure efficient and high-performance search capabilities.
 
 ---
 
-## **🧠 How the RAG Pipeline Works**
+## **RAG Pipeline**
 
-1. **Query Processing**: A user's natural language query is **vectorized** using a **Sentence Transformer model**.
-2. **Semantic Search**: Precomputed **book embeddings** are compared using **cosine similarity**.
-3. **Ranking & Retrieval**: The **top-k most relevant books** are retrieved based on similarity scores.
-4. **LLM Enhancement**: The retrieved books are **re-ranked and explained** using a **language model**.
+![Open Library](https://img.shields.io/badge/Open%20Library-API-008080?style=flat-square&logo=librarything&logoColor=white&color=dodgerblue&labelColor=gray)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-FFD21E?style=flat-square&logo=huggingface&logoColor=000&color=dodgerblue&labelColor=white)](#)
+![DeepSeek](https://img.shields.io/badge/DeepSeek-v3-FF4500?style=flat-square&logo=openai&logoColor=white&color=dodgerblue&labelColor=gray)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?style=flat-square&logo=openai&logoColor=white&color=dodgerblue&labelColor=gray)
+
+1. **Query Processing**: Transforms user queries into vector embeddings using a Sentence Transformer model.
+2. **Semantic Search**: Matches query embeddings with precomputed book embeddings using cosine similarity.
+3. **Ranking & Retrieval**: Fetches the top-k most relevant books based on similarity scores.
+4. **LLM Enhancement**: Refines and elucidates retrieved books using a language model for enhanced recommendations.
+
+---
+
+[![Medium](https://img.shields.io/badge/Medium-000000?style=flat-square&logo=medium&logoColor=white&color=dodgerblue&labelColor=gray)](#)
+![Docs](https://img.shields.io/badge/Docs-📖-dodgerblue?style=flat-square&color=dodgerblue&labelColor=gray)
 
 ## Table of Contents
 
