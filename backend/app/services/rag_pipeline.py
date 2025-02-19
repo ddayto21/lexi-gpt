@@ -2,9 +2,10 @@ from app.clients.llm_client import DeepSeekAPIClient
 from typing import AsyncGenerator, List, Dict
 from app.services.preprocessing import preprocess_book
 import logging
+from fastapi.responses import StreamingResponse
 
 
-def generate_book_summaries(books: List[Dict]):
+def summarize_context(books: List[Dict]):
     """
     Generate concise summaries for each book.
 
@@ -95,29 +96,40 @@ def construct_messages(prompt: str) -> List[Dict[str, str]]:
     ]
 
 
-async def stream_model_response(
-    client: DeepSeekAPIClient, messages: List[Dict], temperature: float
+async def sse_response_generator(
+    llm_client: DeepSeekAPIClient,
+    model: str,
+    messages: List[Dict[str, str]],
+    temperature: float = 1.3,
 ) -> AsyncGenerator[str, None]:
     """
-    Streams the response from the DeepSeek API as SSE (Server-Sent Events).
-
-    Yields each chunk as an SSE-formatted string and, at the end, yields a final "[DONE]" marker.
+    Asynchronous generator that streams SSE-formatted responses from the LLM via DeepSeekAPIClient.
 
     Args:
-        llm_client (DeepSeekAPIClient): The LLM client used to query the DeepSeek API.
-        messages (List[Dict]): The conversation history to send.
-        temperature (float): Controls the randomness of the LLM output.
+        llm_client (DeepSeekAPIClient): The API client instance used to call the DeepSeek API.
+        model (str): The identifier for the LLM model (e.g., "deepseek-chat").
+        messages (List[Dict[str, str]]): A list of message dictionaries representing the conversation history.
+        temperature (float, optional): Temperature parameter for the LLM. Defaults to 0.7.
 
     Yields:
-        str: SSE formatted chunks of text.
+        str: SSE-formatted text chunks as they arrive from the API, with a final marker indicating completion.
     """
-    async for chunk in client.async_stream(
-        model="deepseek-chat",
+    async for chunk in llm_client.async_stream(
+        model=model,
         messages=messages,
         temperature=temperature,
     ):
-        logging.debug("LLM chunk: %s", chunk)
-        # Yield the chunk as an SSE event.
+        # Debug output for tracing.
+        print(chunk, end="", flush=True)
+        # Yield the chunk in SSE format.
         yield f"data: {chunk}\n\n"
-    # Yield final marker in SSE format.
-    yield "data: [DONE]\n\n"
+    # Yield a final SSE marker to signal the end of the stream.
+    yield 'data: {"done": true}\n\n'
+
+
+# Example usage within FastAPI route:
+#
+# return StreamingResponse(
+#     sse_response_generator(llm_client, "deepseek-chat", messages, 0.7),
+#     media_type="text/event-stream"
+# )
