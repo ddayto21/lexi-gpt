@@ -2,7 +2,7 @@ import React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { parseSseData } from "@utils/parse-sse-data";
 import type { Message } from "@ai-sdk/react";
-
+import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 // Extend the default message interface
 export interface ChatMessage extends Message {
   timestamp?: string;
@@ -41,9 +41,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ msg }) => {
       {/* Avatar */}
       {isAssistant ? (
         <div className="mr-2 flex-none">
-          <div className="h-8 w-8 flex items-center justify-center bg-neutral-800 rounded-full text-sm font-bold">
-            AI
-          </div>
+        <AiAvatar/>
         </div>
       ) : (
         <div className="mr-2 flex-none">
