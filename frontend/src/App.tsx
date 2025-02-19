@@ -13,7 +13,6 @@ export function formatContent(message: Message): string {
   return message.content;
 }
 
-
 export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -42,10 +41,21 @@ export default function App() {
     },
   };
 
-  const { messages, input, status, handleInputChange, handleSubmit } =
+  const { messages, input, status, setInput, handleInputChange, handleSubmit } =
     useChat(options);
 
-    
+  // Quick reply suggestions for users
+  const quickReplies = [
+    "I'm into mystery novels",
+    "I love sci-fi adventures",
+    "Recommend a classic literature",
+    "Show me some thrillers",
+  ];
+
+   // When a quick reply is clicked, update the hook's input.
+   const onQuickReplyClick = (reply: string) => {
+    setInput(reply);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-black text-white font-sans">
@@ -107,8 +117,8 @@ export default function App() {
           );
         })}
 
-           {/* Typing indicator when AI is streaming */}
-           {status === "submitted" && (
+        {/* Typing indicator when AI is streaming */}
+        {status === "submitted" && (
           <div className="flex items-start justify-start">
             <div className="mr-2 flex-none">
               <div className="h-8 w-8 flex items-center justify-center bg-gray-700 rounded-full text-sm font-bold">
@@ -122,6 +132,22 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Quick-Reply Suggestions */}
+      <div className="px-4 py-2 border-t border-gray-700">
+        <p className="mb-2 text-sm">Quick Suggestions:</p>
+        <div className="flex gap-2 flex-wrap">
+          {quickReplies.map((reply, index) => (
+            <button
+              key={index}
+              onClick={() => onQuickReplyClick(reply)}
+              className="px-3 py-1 bg-gray-700 text-white rounded-full text-sm hover:bg-gray-600"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Input area */}
