@@ -1,3 +1,4 @@
+# app/tests/conftest.py
 import os
 import pytest
 from dotenv import find_dotenv, load_dotenv
@@ -87,9 +88,24 @@ def prompt_fixture(query_fixture, summaries_fixture) -> str:
     """
     Returns the prompt string constructed from the query and book summaries.
     """
-    from app.services.rag_pipeline import construct_model_prompt
-
-    return construct_model_prompt(query_fixture, summaries_fixture)
+    return (
+        "User query: 'anime similar to hunter hunter'.\n"
+        "\n"
+        "Retrieved book details:\n"
+        "1. hunter x hunter by yoshihiro togashi (1998). Keywords: magic, hunter, graphic novel\n"
+        "2. wild by erin hunter (2003). Keywords: cat, fantasy, fantasy fiction\n"
+        "3. inuyasha by rumiko takahashi (1998). Keywords: good evil, magic, teenage girl\n"
+        "4. long shadow by erin hunter (2008). Keywords: cat, fantasy, fantasy fiction\n"
+        "5. forest secret by erin hunter (2003). Keywords: cat, fantasy, fantasy fiction\n"
+        "\n"
+        "Instructions:\n"
+        "- Provide a JSON array of book recommendations.\n"
+        "- Each recommendation must be an object with the following keys:\n"
+        "    • title: the book title\n"
+        "    • description: a clear, friendly explanation of why the book is relevant to the query\n"
+        "- If none of the retrieved books match the query, generate your own recommendations.\n"
+        "- Output strictly the JSON array without any additional text."
+    )
 
 
 @pytest.fixture
@@ -97,6 +113,13 @@ def messages_fixture(prompt_fixture) -> list:
     """
     Returns the conversation messages constructed from the prompt.
     """
-    from app.services.rag_pipeline import construct_messages
-
-    return construct_messages(prompt_fixture)
+    return [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant that provides clear and accurate book recommendations and explanations. Respond in a friendly, concise, and professional manner.",
+        },
+        {
+            "role": "user",
+            "content": "User query: 'anime similar to hunter hunter'. Retrieved book details: 1. hunter x hunter by yoshihiro togashi (1998). Keywords: magic, hunter, graphic novel 2. wild by erin hunter (2003). Keywords: cat, fantasy, fantasy fiction 3. inuyasha by rumiko takahashi (1998). Keywords: good evil, magic, teenage girl 4. long shadow by erin hunter (2008). Keywords: cat, fantasy, fantasy fiction 5. forest secret by erin hunter (2003). Keywords: cat, fantasy, fantasy fiction Instructions: - Provide a JSON array of book recommendations. - Each recommendation must be an object with the following keys: • title: the book title • description: a clear, friendly explanation of why the book is relevant to the query - If none of the retrieved books match the query, generate your own recommendations. - Output strictly the JSON array without any additional text.",
+        },
+    ]
