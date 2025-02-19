@@ -1,46 +1,34 @@
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-
-import asyncio
+import signal
 import logging
 import multiprocessing
-import signal
-
-import torch
-
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 from contextlib import asynccontextmanager
 
-
-from app.api.routes import router
-from app.clients.open_library_api_client import OpenLibraryAPI
-
-from app.clients.book_cache_client import BookCacheClient
+import torch
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sentence_transformers import SentenceTransformer
+
+from app.config import (
+    FRONTEND_ORIGIN,
+    BOOK_EMBEDDINGS_FILE,
+    BOOK_METADATA_FILE,
+    REDIS_URL,
+)
+from app.api import router as api_router
+from app.clients.book_cache_client import BookCacheClient
 from app.pipelines.load import load_book_embeddings, load_book_metadata
+from app.session_middleware import SessionMiddleware
 
 
-# Load environment variables
+# Load environment variables early
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-BOOK_EMBEDDINGS_FILE = (
-    BASE_DIR / "app" / "data" / "book_metadata" / "book_embeddings.json"
-)
-BOOK_METADATA_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
-
-# Get allowed origin from environment variable
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
-# During local runtime, this variable is deinfe in the .env file
-# During production runtime, the FRONTEND_ORIGIN variable is set in the task definition (AWS ECS).
 
 
 # Ensure subprocesses terminate properly
@@ -52,12 +40,13 @@ def terminate_subprocesses():
         child.join()
 
 
+# Global resource initialization
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handles startup and shutdown events for FastAPI."""
     logging.info("Starting application...")
 
-    # Load pre-trained SentenceTransformer model
+    # Load pre-trained SentenceTransformer model on startup.
     try:
         app.state.model = SentenceTransformer("all-MiniLM-L6-v2")
         app.state.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -66,8 +55,9 @@ async def lifespan(app: FastAPI):
         logging.error(f"Failed to load model: {e}")
         app.state.model = None  # Avoids AttributeError in routes
 
-    # Load embeddings & metadata
+    # Load embeddings & metadata or retrieve from cache if available.
     try:
+
         app.state.document_embeddings = load_book_embeddings(str(BOOK_EMBEDDINGS_FILE))
         app.state.books_metadata = load_book_metadata(str(BOOK_METADATA_FILE))
         if app.state.document_embeddings is None or app.state.books_metadata is None:
@@ -99,14 +89,17 @@ async def lifespan(app: FastAPI):
 # Create FastAPI instance
 app = FastAPI(lifespan=lifespan, redirect_slashes=False)
 
-# CORS Middleware Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_ORIGIN,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_origins=["http://localhost:3000"],  # Allow frontend domain to make requests
+    allow_credentials=True,  # Ensure cookies are sent with requests
+    allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],
+    max_age=600,  # Cache preflight response for 10 minutes
 )
+
+app.add_middleware(SessionMiddleware)
+app.include_router(api_router)
 
 
 @app.get("/")
@@ -125,10 +118,6 @@ async def redis_healthcheck(request: Request):
         return {"status": "ok"}
     except Exception:
         raise HTTPException(status_code=500, detail="Redis ping failed")
-
-
-# Include API routes
-app.include_router(router)
 
 
 # Handle OS signals for graceful shutdown

@@ -1,103 +1,99 @@
+// App.tsx
 import React, { useState } from "react";
-import { SearchBar } from "./components/SearchBar";
-import type { Book } from "../types/api";
-import { searchBooks } from "./services/api";
-import { CSSProperties } from "react";
+import { useChat, type UseChatOptions, type Message } from "@ai-sdk/react";
+import { parseSseData } from "@utils/parse-sse-data";
 
-const App: React.FC = () => {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [error, setError] = useState<string | null>(null);
+export function formatContent(message: Message): string {
+  if (
+    message.role === "assistant" &&
+    message.content.trim().startsWith("data:")
+  ) {
+    return parseSseData(message.content);
+  }
+  return message.content;
+}
 
-  const handleSearch = async (query: string) => {
-    setError(null);
-    try {
-      const data = await searchBooks(query);
-      setBooks(data.recommendations || []);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(`Failed to fetch books: ${err.message}. Please try again.`);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
-    }
+export default function App() {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const options: UseChatOptions = {
+    api: "/api/completion",
+    streamProtocol: "text",
+    initialMessages: [
+      {
+        id: "1",
+        role: "assistant",
+        content:
+          "Hello! I can help you find a book. Please describe your interests.",
+      },
+    ],
+    onFinish: (message) => {
+      // Parse the raw SSE data before printing/logging.
+      const formattedMessage = parseSseData(message.content);
+      console.log("Finished streaming message:", formattedMessage);
+    },
+    onError: (error) => {
+      console.error("An error occurred:", error);
+      setErrorMessage(error.message || "An unknown error occurred.");
+    },
+    onResponse: (response) => {
+      console.log("Received HTTP response from server:", response);
+    },
   };
 
-  return (
-    <div style={styles.appContainer}>
-      <h1 style={styles.title}>Search for a book</h1>
+  const { messages, input, status, handleInputChange, handleSubmit } =
+    useChat(options);
 
-      {/* Fixed SearchBar */}
-      <div style={styles.searchBarWrapper}>
-        <SearchBar onSearch={handleSearch} />
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white"></div>
+      {/* Status/Error messages */}
+      <div className="p-4">
+        <p>Status: {status}</p>
+        {errorMessage && (
+          <div className="mt-2 p-2 bg-red-500 text-white rounded">
+            Error: {errorMessage}
+          </div>
+        )}
       </div>
 
-      {error && <p style={styles.error}>{error}</p>}
+      {/* Chat messages */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {messages.map((msg, i) => {
+          const content = formatContent(msg);
+          return (
+            <div
+              key={i}
+              className={`max-w-xl ${
+                msg.role === "assistant"
+                  ? "self-start bg-white text-black rounded p-3"
+                  : "self-end bg-blue-500 text-white rounded p-3"
+              }`}
+            >
+              <div> {msg.role === "assistant" ? "Assistant" : "You"} </div>
+              <div> {content} </div>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Scrollable results container */}
-      <div style={styles.resultsContainer}>
-        {books.map((book, index) => (
-          <div key={index} style={styles.bookCard}>
-            <h3>{book.title}</h3>
-            <p>
-              <strong>Author(s):</strong> {book.authors?.join(", ") || "N/A"}
-            </p>
-            <p>
-              <strong>Description:</strong>{" "}
-              {book.description || "No description"}
-            </p>
-          </div>
-        ))}
+      {/* Input area */}
+      <div className="flex items-center gap-2 p-4 bg-gray-200 border-t border-gray-300">
+        <input
+          className="flex-1 px-3 py-2 rounded border border-gray-400"
+          placeholder="Describe a book you are looking for..."
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={status === "submitted" || input === ""}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
+          Send
+        </button>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: CSSProperties } = {
-  appContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    height: "100vh",
-    backgroundColor: "#0d0d0d",
-    color: "#f0f0f0",
-    fontFamily: "Inter, sans-serif",
-    // Prevents unwanted body scrolling
-    overflow: "hidden",
-  },
-  title: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    marginTop: "20px",
-    marginBottom: "10px",
-  },
-  searchBarWrapper: {
-    position: "sticky",
-    top: "0",
-    zIndex: 10,
-    backgroundColor: "#0d0d0d",
-    width: "100%",
-    display: "flex",
-    justifyContent: "center",
-    padding: "10px 0",
-  },
-  error: {
-    color: "red",
-    marginTop: "10px",
-  },
-  resultsContainer: {
-    flex: 1,
-    width: "100%",
-    maxWidth: "600px",
-    overflowY: "auto",
-    paddingTop: "10px",
-  },
-  bookCard: {
-    backgroundColor: "#1e1e1e",
-    padding: "15px",
-    borderRadius: "10px",
-    marginBottom: "10px",
-    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.5)",
-  },
-};
-
-export default App;
+}

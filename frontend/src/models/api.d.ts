@@ -13,3 +13,16 @@ export interface SearchResponse {
   recommendations: Book[];
   message?: string;
 }
+
+/**
+ * Represents a single message in the conversation log
+ */
+export interface Message {
+  role: string; // "user" | "assistant" | "system"
+  content: string;
+  parts?: { type: string; text: string }[];
+}
+
+
+
+

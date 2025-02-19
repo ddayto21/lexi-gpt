@@ -1,89 +1,244 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Book Search API
-  version: "1.0.0"
-  description: >
-    The Book Search API provides a RESTful interface for searching books using natural language queries.
-    The service leverages an LLM to refine user queries and enhance retrieved book data from OpenLibrary.
-    It is optimized for low latency (1-3 seconds response time).
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+  title: FastAPI
+  version: 0.1.0
 servers:
-  - url: https://api.production.com
-    description: Production server
-  - url: https://staging-api.production.com
-    description: Staging server
-
+  - url: http://localhost:8000
+    description: Local server
+security:
+  - apiKeyAuth: []
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
 paths:
-  /search-books:
+  /completion:
     post:
-      summary: Search Books
-      description: >
-        Processes a natural language query to search for books. The query is refined using an LLM 
-        before retrieving data from OpenLibrary. The response contains recommended books.
+      summary: Chat Stream
+      description: |-
+        Streams chat completions from the DeepSeek LLM API to the client using Server-Sent Events (SSE).
+        This endpoint accepts a JSON payload containing a list of messages and returns a streamed response 
+        where each SSE event contains a text delta from the language model. The events are formatted as plain text, 
+        with each event starting with "data:" and terminated by two newline characters.
+      operationId: chat_stream_api_chat_stream_post
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchBooksRequest"
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
       responses:
-        "200":
-          description: A successful response containing book recommendations.
+        '200':
+          description: Successful streaming response (SSE)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  A stream of server-sent events (SSE) where each event contains a text delta from the LLM.
+                  Each event is formatted with a "data:" prefix and terminated by two newline characters.
+                  example: |
+                    data: {"content": "Hello, world!"}
+                  
+                    data: {"content": "How can I help you?"}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchBooksResponse"
-        "403":
-          description: Request forbidden due to moderated content.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Server error (e.g., LLM or OpenLibrary failure).
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/HTTPValidationError'
+  /search_books:
+    post:
+      summary: Search Books
+      description: |-
+        Process a search query by performing semantic search over precomputed embeddings,
+        then using the RAG pipeline to generate book recommendations.
 
+        The process involves:
+          1. Cleaning and validating the user query.
+          2. Retrieving the language model, device, book embeddings, and metadata from application state.
+          3. Checking a Redis cache for previously computed results.
+          4. Running the RAG pipeline to produce a JSON array of recommendations.
+      operationId: search_books_search_books_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /healthcheck/redis:
+    get:
+      summary: Redis Healthcheck
+      description: Checks if Redis is running and reachable.
+      operationId: redis_healthcheck_healthcheck_redis_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
 components:
   schemas:
-    SearchBooksRequest:
+    BookRequest:
       type: object
+      title: BookRequest
+      description: The request payload for searching books.
       properties:
         query:
           type: string
-          description: The natural language search query.
+          title: Search Query
+          description: The query string for book search.
       required:
         - query
-
-    SearchBooksResponse:
+      example:
+        query: "find books about money"
+    CompletionRequest:
       type: object
+      title: CompletionRequest
+      description: |-
+        Represents a chat request for the language model (LLM).
+        
+        Attributes:
+          - model: The identifier for the LLM to use.
+          - temperature: Controls the randomness of the generated output.
+          - messages: A list of chat messages that form the conversation history.
+          - max_tokens: The maximum number of tokens that the model can generate.
+          - response_format: Specifies the format of the model's output (e.g., 'json_object').
+          - stream: If True, partial message deltas will be sent via SSE.
       properties:
-        recommendations:
-          type: array
-          description: An array of recommended books.
-          items:
-            $ref: "#/components/schemas/Book"
-
-    Book:
-      type: object
-      properties:
-        title:
+        model:
           type: string
-        authors:
+          title: Model Identifier
+          description: The identifier for the language model (e.g., 'deepseek-chat') that will process the conversation.
+          default: deepseek-chat
+          examples:
+            - deepseek-chat
+            - deepseek-reasoner
+        temperature:
+          anyOf:
+            - type: number
+            - type: 'null'
+          title: Temperature Parameter
+          description: Controls the randomness of the generated response. Lower values yield more deterministic output, while higher values increase variability.
+          default: 1.3
+          examples:
+            - 0.5
+            - 1
+            - 1.3
+        messages:
           type: array
+          title: Conversation History
+          description: A list of chat messages comprising the conversation history so far.
           items:
-            type: string
-        description:
-          type: string
-
-    Error:
-      type: object
-      properties:
-        code:
+            $ref: '#/components/schemas/Message'
+          example:
+            - role: user
+              content: Please produce a JSON output that lists anime similar to Hunter x Hunter.
+        max_tokens:
           type: integer
-        message:
+          title: Max Tokens
+          description: The maximum number of tokens that the model is allowed to generate.
+          default: 1000
+          example: 1000
+        response_format:
           type: string
+          title: Response Format
+          description: Specifies the format of the model's output. For example, setting this to 'json_object' instructs the model to produce output that is valid JSON.
+          default: json_object
+          examples:
+            - text
+            - json_object
+        stream:
+          type: boolean
+          title: Stream
+          description: If True, partial message deltas will be sent via SSE.
+          default: false
+          example: true
+      required:
+        - messages
+      example:
+        model: deepseek-chat
+        temperature: 1.3
+        max_tokens: 1000
+        response_format: json_object
+        stream: true
+        messages:
+          - role: user
+            content: Please produce a JSON output that lists anime similar to Hunter x Hunter.
+    HTTPValidationError:
+      type: object
+      title: HTTPValidationError
+      properties:
+        detail:
+          type: array
+          title: Detail
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    Message:
+      type: object
+      title: Message
+      description: Represents a single message in the conversation.
+      properties:
+        role:
+          type: string
+          title: Message Role
+          description: 'Specifies the role of the message. Allowed values: ''user'', ''system'', or ''assistant''.'
+          example: user
+        content:
+          type: string
+          title: Message Content
+          description: The actual text content of the message.
+          example: What is the best anime similar to Hunter x Hunter?
+      required:
+        - role
+        - content
+    ValidationError:
+      type: object
+      title: ValidationError
+      properties:
+        loc:
+          type: array
+          title: Location
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      required:
+        - loc
+        - msg
+        - type

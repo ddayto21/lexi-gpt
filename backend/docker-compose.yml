@@ -1,25 +1,57 @@
+# docker-compose.yml
+
 services:
+  # ---------------------------------------------------------------------------
+  # API Service
+  # This service builds and runs the FastAPI application.
+  # It depends on the Redis service to ensure that caching/session storage is available.
+  # Environment variables configure the connection to Redis, with sensitive data injected via AWS Secrets Manager.
+  # The API is bound to localhost (127.0.0.1) to restrict external access.
+  # ---------------------------------------------------------------------------
   api:
-    build: .
+    build: . # Build the Docker image using the Dockerfile in the current directory.
     depends_on:
-      - redis
+      - redis # Ensure Redis is started before the API.
+
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}  # Injected via AWS Secrets Manager
-    ports:
-      - "8000:8000"
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Injected via AWS Secrets Manager
 
+    ports:
+      - "127.0.0.1:8000:8000" # Bind the API service to localhost on port 8000.
+
+  # ---------------------------------------------------------------------------
+  # Redis Service
+  # This service uses the lightweight 'redis:alpine' image for caching/session management.
+  # A custom Redis configuration is mounted from the host.
+  # Persistent data is stored in a named volume (redis_data).
+  # The service is bound to localhost and includes a health check to ensure availability.
+  # ---------------------------------------------------------------------------
   redis:
     image: "redis:alpine"
-    restart: always
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    ports:
-      - "6379:6379"
+
     volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf  # Mount the Redis config file
-      - redis_data:/data  # Persistent storage
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf # Mount the Redis config file
+      - redis_data:/data # Persistent storage
+    ports:
+      - "127.0.0.1:6379:6379"
 
+    restart: always
 
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+
+# ---------------------------------------------------------------------------
+# Named Volumes
+# Define volumes to persist data across container restarts.
+# ---------------------------------------------------------------------------
 volumes:
   redis_data:
+
+

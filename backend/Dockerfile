@@ -31,7 +31,9 @@ COPY ./app /code/app
 RUN rm -rf /code/app/__pycache__ \
     && rm -rf /code/app/.pytest_cache \
     && rm -rf /code/app/.vscode \
-    && rm -rf /code/app/.git
+    && rm -rf /code/app/.git \
+    && rm -rf /code/ecs \
+    && rm -rf /ecs
 
 # 9) Expose port 8000 for FastAPI
 EXPOSE 8000
