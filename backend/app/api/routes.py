@@ -237,9 +237,6 @@ async def search_books(
             "Return only the JSON array."
         )
 
-        print("prompt")
-        print(llm_prompt)
-
         # 8. Prepare LLM Client & Streaming
         llm_client = DeepSeekAPIClient()
 
@@ -250,19 +247,6 @@ async def search_books(
             },
             {"role": "user", "content": llm_prompt},
         ]
-        print("messages:")
-        print(messages)
-
-        # 8. Define a single streaming generator that yields chunks and then a final marker.
-        # async def generate():
-        #     async for chunk in llm_client.async_stream(
-        #         model="deepseek-chat",
-        #         messages=messages,
-        #         temperature=0.7,
-        #     ):
-        #         print(chunk, end="", flush=True)
-        #         # Yield each chunk prefixed with "data:" (SSE format).
-        #         yield f"data: {chunk}\n\n"
 
         # 9. Return the StreamingResponse.
         # return StreamingResponse(generate(), media_type="text/event-stream")
