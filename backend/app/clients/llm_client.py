@@ -9,6 +9,15 @@ import requests  # For making synchronous HTTP requests
 
 from typing import AsyncGenerator, Generator, List, Dict, Optional
 
+import logging
+
+# Configure module-level logger.
+logger = logging.getLogger(__name__)
+
+
+# Ensure environment variables are loaded.
+load_dotenv()
+
 
 # -----------------------------------------------------------------------------
 # A client designed to interact with the DeepSeek API.
@@ -19,9 +28,12 @@ class DeepSeekAPIClient:
         self,
         api_key: Optional[str] = None,
         base_url: str = "https://api.deepseek.com/v1/chat/completions",
+        client: Optional[httpx.AsyncClient] = None,
+        timeout: Optional[httpx.Timeout] = None,
     ):
 
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
+
         if not self.api_key:
             raise ValueError(
                 "API key not provided or set in DEEPSEEK_API_KEY environment variable"
@@ -31,6 +43,8 @@ class DeepSeekAPIClient:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
+
+        self.client = client  # Allows dependency injection for testing.
 
     def get_token_balance(self) -> dict:
         """
@@ -54,60 +68,61 @@ class DeepSeekAPIClient:
         self, model: str, messages: List[Dict], temperature: float
     ) -> AsyncGenerator[str, None]:
         """
-        Asynchronous generator that streams responses from the DeepSeek API.
+        Asynchronously streams responses from the DeepSeek API.
 
-        This method sends a POST request to the DeepSeek API with the specified
-        model, messages, and temperature parameters. It then listens for the streamed
-        response, processes each incoming line, and yields chunks of text as they
-        arrive.
+        Sends a POST request with the specified model, messages, and temperature parameters,
+        then yields each received chunk formatted as a Server-Sent Event (SSE) string.
+        Finally, it yields a final SSE message indicating completion.
 
         Args:
             model (str): The DeepSeek model identifier (e.g., "deepseek-chat").
-            messages (List[Dict]): A list of messages forming the conversation history.
-                                   Each message is a dict with keys like "role" and "content".
-            temperature (float): Controls the randomness of the model's response.
+            messages (List[Dict]): Conversation history messages.
+            temperature (float): Controls the randomness of the model's output.
 
         Yields:
-            str: Chunks of generated text from the API as they arrive, plus a final "[DONE]" message
-                 when the stream has finished.
-
-
+            str: SSE-formatted text chunks, ending with 'data: {"done": true}\n\n' to signal completion.
         """
-        # Create an asynchronous HTTP client to manage the connection.
-
-        async with httpx.AsyncClient(
-            http2=True,
-            timeout=httpx.Timeout(connect=10.0, read=None, write=10.0, pool=10.0),
-        ) as client:
-            # Send a POST request with streaming enabled. The API will send back lines of data.
-            async with client.stream(
-                "POST",
-                self.base_url,
-                headers=self.headers,
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "stream": True,  # Enable streaming mode in the request.
-                },
-            ) as response:
-                # Raise an error if the request was unsuccessful.
-                response.raise_for_status()
-
-                # Read each line in the streamed response.
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        try:
-                            # Strip the "data: " prefix and parse JSON.
-                            json_data = json.loads(line[6:])
-                            # Extract 'content' from the first choice's delta.
-                            chunk = json_data["choices"][0]["delta"].get("content", "")
-                            if chunk:
-                                yield chunk
-                        except json.JSONDecodeError:
-                            # If parsing fails, skip this line.
-                            continue
-                yield "[DONE]"  # Signal the end of the stream.
+        client = self.client or httpx.AsyncClient(http2=True, timeout=None)
+        try:
+            async with client:
+                async with client.stream(
+                    "POST",
+                    self.base_url,
+                    headers=self.headers,
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "max_tokens": 1000,
+                        "temperature": temperature,
+                        "stream": True,
+                    },
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line.startswith("data: "):
+                            try:
+                                json_data = json.loads(line[6:])
+                                chunk = json_data["choices"][0]["delta"].get(
+                                    "content", ""
+                                )
+                                if chunk:
+                                    yield f"data: {chunk}\n\n"
+                            except json.JSONDecodeError:
+                                logger.warning(
+                                    "Failed to parse JSON from line: %s", line
+                                )
+                                continue
+                    # Signal end of stream.
+                    yield 'data: {"done": true}\n\n'
+        except httpx.HTTPStatusError as e:
+            logger.error("HTTP error in async_stream: %s", e)
+            raise
+        except httpx.TimeoutException as e:
+            logger.error("Timeout in async_stream: %s", e)
+            raise
+        except Exception as e:
+            logger.error("Unexpected error in async_stream: %s", e)
+            raise
 
     def sync_stream(
         self, model: str, messages: List[Dict], temperature: float
@@ -167,110 +182,3 @@ def read_multiline_prompt() -> str:
             break
         lines.append(line)
     return "\n".join(lines)
-
-
-# -----------------------------------------------------------------------------
-# Main program entry point.
-# This section sets up an interactive REPL so you can ask multiple questions.
-#
-# Example to run the program in the terminal:
-#   python3 app/clients/llm_client.py --model deepseek-chat --temperature 0.9 --async-mode
-# -----------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import argparse
-    import sys
-
-    def parse_args():
-        """
-        Parse command-line arguments.
-        Options:
-            --model: Select the DeepSeek model (default: deepseek-chat).
-            --temperature: Set the temperature (default: 0.7).
-            --async-mode: Use asynchronous streaming (requires Python 3.7+).
-        """
-        parser = argparse.ArgumentParser(
-            description="DeepSeek CLI Client - Chat with DeepSeek models"
-        )
-        parser.add_argument(
-            "--model",
-            type=str,
-            default="deepseek-chat",
-            help="Model to use (default: deepseek-chat)",
-        )
-        parser.add_argument(
-            "--temperature",
-            type=float,
-            default=0.7,
-            help="Temperature parameter (default: 0.7)",
-        )
-        parser.add_argument(
-            "--async-mode",
-            action="store_true",
-            help="Use asynchronous mode (requires Python 3.7+)",
-        )
-        return parser.parse_args()
-
-    # Load environment variables from the .env file.
-    load_dotenv()
-    args = parse_args()
-
-    # Prompt the user to enter a prompt interactively in the terminal.
-    # user_prompt = input("Enter your prompt: ")
-    # # Build the messages list expected by the API.
-    # messages = [{"role": "user", "content": user_prompt}]
-
-    # Create an instance of the DeepSeekAPIClient.
-    # The API key is loaded from the environment if not provided.
-    client = DeepSeekAPIClient()
-    # Query and display the token balance
-    token_balance = client.get_token_balance()
-    print(f"Token Balance: {token_balance}")
-    try:
-        # If asynchronous mode is enabled, run the async REPL.
-        if args.async_mode:
-
-            async def run_async_repl():
-                while True:
-                    # Prompt the user to enter their question.
-                    # user_input = input("Enter your prompt (or type 'quit' to exit): ")
-                    user_input = read_multiline_prompt()
-                    if user_input.strip().lower() == "quit":
-                        print("Exiting interactive session.")
-                        break
-                    # Build the messages list expected by the API.
-                    messages = [{"role": "user", "content": user_input}]
-                    print("\n--- Answer ---")
-                    # Stream the response asynchronously, printing each chunk as it arrives.
-                    async for chunk in client.async_stream(
-                        model=args.model,
-                        messages=messages,
-                        temperature=args.temperature,
-                    ):
-                        print(chunk, end="", flush=True)
-                    print("\n--------------\n")
-
-            asyncio.run(run_async_repl())
-        else:
-            # Synchronous REPL loop.
-            while True:
-                try:
-                    user_input = input("Enter your prompt (or type 'quit' to exit): ")
-                except KeyboardInterrupt:
-                    print("\nExiting interactive session.")
-                    break
-                if user_input.strip().lower() == "quit":
-                    print("Exiting interactive session.")
-                    break
-                messages = [{"role": "user", "content": user_input}]
-                print("\n--- Answer ---")
-                # Stream the response synchronously, printing each chunk as it arrives.
-                for chunk in client.sync_stream(
-                    model=args.model, messages=messages, temperature=args.temperature
-                ):
-                    print(chunk, end="", flush=True)
-                print("\n--------------\n")
-    except KeyboardInterrupt:
-        # If the user presses Ctrl+C, handle the interruption gracefully.
-        print("\n\nOperation interrupted by user")
-        sys.exit(0)
