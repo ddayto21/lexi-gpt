@@ -1,5 +1,10 @@
 dump.rdb
+*.log
+*dump.rdb
+
 ecs/
+extra/
+
 
 # Python-related files
 __pycache__/
