@@ -1,4 +1,5 @@
-import { parseSseData } from "../../utils/parse-sse-data";
+import { parseSseData, formatContent } from "../../utils/parse-sse-data";
+import type { Message } from "@ai-sdk/react";
 
 describe("parseSseData", () => {
   test("should return an empty string for empty input", () => {
@@ -33,5 +34,27 @@ describe("parseSseData", () => {
     const input = "data: Part1\n\ndata: Part2\n\ndata: Part3\n\n";
     const expectedOutput = "Part1 Part2 Part3";
     expect(parseSseData(input)).toBe(expectedOutput);
+  });
+
+  it("should handle multiple data lines", () => {
+    expect(parseSseData("data: Hello\ndata: World!\n\n")).toBe("Hello World!");
+  });
+
+  it("should return empty string for no data", () => {
+    expect(parseSseData("")).toBe("");
+    expect(parseSseData("  \n\n ")).toBe("");
+  });
+
+  it("should throw error on invalid input", () => {
+    expect(() => parseSseData(null as unknown as string)).toThrow("Input must be a string");
+  });
+
+  it("formatContent works with assistant messages", () => {
+    const message: Message = {
+      role: "assistant",
+      content: "data: This is formatted\n",
+      id: "some-unique-id"
+    };
+    expect(formatContent(message)).toBe("This is formatted");
   });
 });

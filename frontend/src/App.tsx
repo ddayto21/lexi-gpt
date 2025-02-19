@@ -10,7 +10,6 @@ import { ChatInput } from "@components/ui/chat/chat-input";
 import { StatusBar } from "@components/status-bar";
 import { prompts } from "@data/constants/prompts";
 
-// 1. Extend the default Message type to include a timestamp.
 export interface ChatMessage extends Message {
   timestamp?: string;
 }
@@ -19,9 +18,23 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
+  /**
+   * @description Configuration for the useChat hook, defining the interaction with the backend API.
+   * This object sets up the connection to the chat completion endpoint, specifies the streaming protocol,
+   * provides initial chat messages, and defines callback functions for handling responses, errors, and the completion of a message.
+   */
   const options: UseChatOptions = {
+    /**
+     * @description The API endpoint for chat completions. This URL is proxied by the frontend
+     * to the backend's `/completion` route, which in turn forwards requests to the DeepSeek LLM API.
+     * @type {string}
+     */
     api: "/api/completion",
     streamProtocol: "text",
+    /**
+     * @description Initial messages displayed in the chat window. This provides a starting point for the conversation.
+     * @type {ChatMessage[]}
+     */
     initialMessages: [
       {
         id: "1",
@@ -31,14 +44,30 @@ export default function App() {
         timestamp: new Date().toISOString(),
       } as ChatMessage,
     ],
+    /**
+     * @description Callback function called when a complete message has been received and processed.
+     * The `message` object contains the full content of the streamed response, which might need parsing.
+     * @param {ChatMessage} message The completed chat message.
+     */
     onFinish: (message) => {
+      console.log("Raw message content:", message.content);
       const formattedMessage = parseSseData(message.content);
       console.log("Finished streaming message:", formattedMessage);
+      setShowSuggestions(true);
     },
+    /**
+     * @description Callback function called when an error occurs during the chat interaction.
+     * @param {Error} error The error object.
+     */
     onError: (error) => {
       console.error("An error occurred:", error);
       setErrorMessage(error.message || "An unknown error occurred.");
     },
+    /**
+     * @description Callback function called when an HTTP response is received from the server.
+     * This can be used for logging or other processing of the response.
+     * @param {Response} response The HTTP response object.
+     */
     onResponse: (response) => {
       console.log("Received HTTP response from server:", response);
     },
@@ -63,14 +92,14 @@ export default function App() {
     } as ChatMessage);
   }
 
-  // When a prompt is clicked, auto-send that message and hide suggestions.
-  const onPromptClick = (replyContent: string) => {
-    sendMessageWithContent(replyContent);
+  // When a prompt is clicked, that message and hide suggestions.
+  const onPromptClick = (promptContent: string) => {
+    sendMessageWithContent(promptContent);
     setShowSuggestions(false);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white font-sans py-10 px-10">
+    <div className="flex flex-col h-screen bg-black text-white font-sans">
       <Header />
 
       <StatusBar status={status} errorMessage={errorMessage} />
@@ -78,12 +107,10 @@ export default function App() {
       {/* Chat messages container */}
       <ChatWindow messages={messages as ChatMessage[]} status={status} />
 
-      {/* Quick-Reply Suggestions */}
       {showSuggestions && (
         <PromptSuggestions
           examplePrompts={prompts}
           onPromptClick={onPromptClick}
-          onClose={() => setShowSuggestions(false)}
         />
       )}
 

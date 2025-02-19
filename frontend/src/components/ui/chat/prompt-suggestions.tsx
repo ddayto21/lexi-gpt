@@ -1,50 +1,104 @@
-import React from "react";
+import React, { useState } from "react";
 
-export interface QuickReply {
-  icon: string;
+interface PromptSuggestion {
   title: string;
+  description?: string;
   content: string;
-  description: string;
+  icon?: string;
 }
 
 interface PromptSuggestionsProps {
-  examplePrompts: QuickReply[];
-  onPromptClick: (replyContent: string) => void;
-  onClose: () => void;
+  examplePrompts: PromptSuggestion[];
+  onPromptClick: (prompt: string) => void;
 }
 
 export const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   examplePrompts,
   onPromptClick,
-  onClose,
-}) => (
-  <aside className="relative px-4 py-3 border-t border-neutral-800 bg-neutral-900">
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-sm font-semibold text-gray-200">Topics</p>
-      <button
-        onClick={onClose}
-        className="text-gray-500 hover:text-gray-300 transition-colors"
-        aria-label="Close suggestions"
-      >
-        ✕
-      </button>
-    </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {examplePrompts.map((reply, index) => (
+}) => {
+  // Tracks whether the suggestions are collapsed or expanded
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Toggle collapse state
+  function toggleCollapse() {
+    setIsCollapsed((prev) => !prev);
+  }
+
+  return (
+    <aside
+      className="
+        relative
+        p-3
+        bg-black/60
+        backdrop-blur-sm
+        transition-all
+        duration-300
+      "
+      // If collapsed, reduce height drastically, hide overflow
+      style={{
+        maxHeight: isCollapsed ? "2rem" : "40%",
+        overflowY: isCollapsed ? "hidden" : "auto",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-base font-semibold text-gray-200">
+          {isCollapsed ? "" : "Select a topic"}
+        </p>
         <button
-          key={index}
-          onClick={() => onPromptClick(reply.content)}
-          className="flex items-center p-3 border border-neutral-700 bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded-md transition-colors"
+          onClick={toggleCollapse}
+          className="
+            text-gray-400
+            hover:text-gray-200
+            text-sm
+            transition-colors
+            bg-neutral-800/50
+            rounded-full
+            px-2 py-1
+          "
+          aria-label="Toggle suggestions"
         >
-          <div className="mr-3 text-lg">{reply.icon}</div>
-          <div className="text-left">
-            <div className="text-sm font-semibold text-gray-100">
-              {reply.title}
-            </div>
-            <div className="text-xs text-gray-400">{reply.description}</div>
-          </div>
+          {isCollapsed ? "▲" : "▼"}
         </button>
-      ))}
-    </div>
-  </aside>
-);
+      </div>
+
+     
+     
+      {!isCollapsed && (
+        <div
+          className="
+            flex flex-wrap
+            gap-2
+
+            overflow-x-auto scrollbar-custom
+            whitespace-nowrap
+            h-full
+          "
+        >
+          {examplePrompts.map((prompt, index) => (
+            <button
+              key={index}
+              onClick={() => onPromptClick(prompt.content)}
+              className="
+                inline-flex items-center 
+                bg-neutral-800 text-gray-100
+                rounded-full px-4 py-2
+                text-sm font-medium
+                border border-neutral-700
+                transition-colors 
+                hover:bg-neutral-700
+                whitespace-nowrap
+              "
+            >
+              {prompt.icon && (
+                <span className="mr-2" role="img" aria-hidden>
+                  {prompt.icon}
+                </span>
+              )}
+              {prompt.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
+};
