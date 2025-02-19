@@ -1,34 +1,25 @@
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-
-
+import signal
 import logging
 import multiprocessing
-import signal
-
-import torch
-
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-
+from pathlib import Path
 from contextlib import asynccontextmanager
 
+import torch
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sentence_transformers import SentenceTransformer
 
 from app.api import router as api_router
-
-from app.clients.open_library_api_client import OpenLibraryAPI
-
 from app.clients.book_cache_client import BookCacheClient
-from sentence_transformers import SentenceTransformer
 from app.pipelines.load import load_book_embeddings, load_book_metadata
 from app.session_middleware import SessionMiddleware
 
 
-# Load environment variables
+# Load environment variables early
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -40,7 +31,6 @@ BOOK_EMBEDDINGS_FILE = (
 )
 BOOK_METADATA_FILE = BASE_DIR / "app" / "data" / "book_metadata" / "book_metadata.json"
 
-# Get allowed origin from environment variable
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
 # During local runtime, this variable is deinfe in the .env file
 # During production runtime, the FRONTEND_ORIGIN variable is set in the task definition (AWS ECS).

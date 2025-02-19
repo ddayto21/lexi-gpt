@@ -65,7 +65,6 @@ async def completion(req: dict):
                     # Yield the chunk's delta content; if missing, yield an empty string.
                     text = chunk.choices[0].delta.content or ""
                     sse_event = f"data: {text}\n\n"
-                    print("Yielding sse_event", repr(sse_event))
 
                     yield sse_event.encode("utf-8")
                 except Exception as inner_e:
