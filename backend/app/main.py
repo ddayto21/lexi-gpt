@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 
-from app.api.routes import router
+from app.api import router as api_router
+
 from app.clients.open_library_api_client import OpenLibraryAPI
 
 from app.clients.book_cache_client import BookCacheClient
@@ -110,12 +111,8 @@ app.add_middleware(
     max_age=600,  # Cache preflight response for 10 minutes
 )
 
-
 app.add_middleware(SessionMiddleware)
-
-
-# Include API routes
-app.include_router(router)
+app.include_router(api_router)
 
 
 @app.get("/")
