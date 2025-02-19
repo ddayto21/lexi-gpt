@@ -1,5 +1,14 @@
 # 📖 LexiGPT: AI-Powered Recommendation Chatbot
 
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/react-18.2.0-blue?logo=react)
+![DeepSeek](https://img.shields.io/badge/deepseek-v3-blue?logo=openai)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-green?logo=openai)
+
+![Docs](https://img.shields.io/badge/docs-%F0%9F%93%96-blue)
+![Community](https://img.shields.io/badge/community-%F0%9F%92%AC-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 **LexiGPT** is a **retrieval-augmented generation (RAG) chatbot** designed to provide **intelligent, personalized book recommendations**. It combines **semantic search** with **large language models (LLMs)** such as OpenAI and DeepSeek to process natural language queries. Built with **FastAPI** and a **React web interface**, LexiGPT enables **fast, accurate book discovery** through a conversational web interface.
 
 ## **🚀 Features**
