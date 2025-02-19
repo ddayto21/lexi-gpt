@@ -27,7 +27,7 @@ export default function App() {
         id: "1",
         role: "assistant",
         content:
-          "Hello! I am a generative AI agent. How may I assist you today?",
+          "Hello! I am a book recommendation assistant.  To give you the best recommendations, please tell me what you're looking for in a book.  For example, you can tell me the genre, themes, authors you like, or anything else that's important to you.",
         timestamp: new Date().toISOString(),
       } as ChatMessage,
     ],
