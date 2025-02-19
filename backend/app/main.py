@@ -21,6 +21,7 @@ from app.clients.open_library_api_client import OpenLibraryAPI
 from app.clients.book_cache_client import BookCacheClient
 from sentence_transformers import SentenceTransformer
 from app.pipelines.load import load_book_embeddings, load_book_metadata
+from app.session_middleware import SessionMiddleware
 
 
 # Load environment variables
@@ -100,14 +101,21 @@ async def lifespan(app: FastAPI):
 # Create FastAPI instance
 app = FastAPI(lifespan=lifespan, redirect_slashes=False)
 
-# CORS Middleware Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_ORIGIN,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_origins=["http://localhost:3000"],  # Allow frontend domain to make requests
+    allow_credentials=True,  # Ensure cookies are sent with requests
+    allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],
+    max_age=600,  # Cache preflight response for 10 minutes
 )
+
+
+app.add_middleware(SessionMiddleware)
+
+
+# Include API routes
+app.include_router(router)
 
 
 @app.get("/")
@@ -126,10 +134,6 @@ async def redis_healthcheck(request: Request):
         return {"status": "ok"}
     except Exception:
         raise HTTPException(status_code=500, detail="Redis ping failed")
-
-
-# Include API routes
-app.include_router(router)
 
 
 # Handle OS signals for graceful shutdown
