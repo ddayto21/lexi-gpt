@@ -1,4 +1,23 @@
-# Book Recommendation System
+# 📖 LexiGPT: AI-Powered Recommendation Chatbot
+
+**LexiGPT** is a **retrieval-augmented generation (RAG) chatbot** designed to provide **intelligent, personalized book recommendations**. It combines **semantic search** with **large language models (LLMs)** such as OpenAI and DeepSeek to process natural language queries. Built with **FastAPI** and a **React web interface**, LexiGPT enables **fast, accurate book discovery** through a conversational web interface.
+
+## **🚀 Features**
+
+- **LLM-Powered Responses** → Uses OpenAI/DeepSeek to process book-related queries.
+- **Semantic Search with Vector Embeddings** → Finds books based on meaning, not just keywords.
+- **Real-Time Streaming** → Fast, chatbot-style recommendations.
+- **Multi-LLM Support** → Users can configure different language model providers.
+- **Highly Scalable API** → Built with **FastAPI** for high-performance search.
+
+---
+
+## **🧠 How the RAG Pipeline Works**
+
+1. **Query Processing**: A user's natural language query is **vectorized** using a **Sentence Transformer model**.
+2. **Semantic Search**: Precomputed **book embeddings** are compared using **cosine similarity**.
+3. **Ranking & Retrieval**: The **top-k most relevant books** are retrieved based on similarity scores.
+4. **LLM Enhancement**: The retrieved books are **re-ranked and explained** using a **language model**.
 
 ## Table of Contents
 
@@ -21,39 +40,41 @@
 
 ## Overview
 
-This project is a **Book Search Application** that allows users to search for books using natural language queries. The application integrates with the **OpenLibrary Web Service** to fetch book data and uses a **Large Language Model (LLM)** to process queries and generate natural language responses. The goal is to provide a fast, intuitive search experience with response times under **1-3 seconds**.
+LexiGPT allows users to **search for books using natural language descriptions**. It integrates with the **OpenLibrary Web Service** to fetch book data and uses **LLMs to refine and enhance search results**. The goal is to deliver **fast, relevant recommendations** with response times under **1-3 seconds**.
 
 ---
 
 ## Problem Statement
 
-Users need a fast, intuitive way to search for books using natural language descriptions. The challenge is to build a system that can process these queries, fetch relevant data, and generate natural language responses within 1-3 seconds.
+Finding the right book can be challenging when you don't have an exact title or author in mind. **LexiGPT** solves this by **interpreting natural language queries, identifying key details, and retrieving relevant book recommendations** in real-time.
 
 ---
 
 ## Tech Stack
 
-The application follows a **client-server architecture**:
+LexiGPT follows a **client-server architecture** for **scalability and performance**.
 
 ### Frontend
 
 - **Tech Stack**: React, Fetch API (for HTTP requests)
 - **Core Features**:
-  - **Smart Search**: Supports natural language queries for intuitive book discovery.
-  - **Dynamic Recommendations**: Displays book titles, authors, and summaries based on user input.
-  - **Responsive UI**: Optimized for both desktop and mobile devices.
+  - **Conversational Search** → Supports flexible, natural language queries.
+  - **Dynamic Recommendations** → Displays book titles, authors, and summaries based on user input.
+  - **Responsive UI** → Optimized for desktop and mobile.
 
 ### Backend
 
 - **Tech Stack**:
-  - **Python**: FastAPI
-  - **Docker**: Containerization
-  - **LLM API**: HF API, OpenAI API
+  - **FastAPI** → High-performance Python backend.
+  - **LLM APIs** → Uses OpenAI, DeepSeek, and HF APIs for query processing.
+  - **Docker** → Containerized for portability.
 - **Core Features**:
-  - **Query Understanding**: The LLM extracts key details from user queries.
-  - **Information Retrieval**: Calls the OpenLibrary API to fetch relevant book metadata.
-  - **Response Generation**: Summarizes book descriptions and crafts natural language responses.
-  - **Caching for Performance**: Frequently searched queries are cached, reducing API calls and improving response times.
+  - **Query Understanding** → Extracts structured details (title, author, genre) from user input.
+  - **Information Retrieval** → Fetches book metadata from OpenLibrary.
+  - **AI-Enhanced Responses** → Summarizes and ranks recommendations using LLMs.
+  - **Caching for Performance** → Stores frequent queries to reduce API calls and improve speed.
+
+---
 
 ---
 
