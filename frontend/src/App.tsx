@@ -13,6 +13,7 @@ export function formatContent(message: Message): string {
   return message.content;
 }
 
+
 export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -43,6 +44,8 @@ export default function App() {
 
   const { messages, input, status, handleInputChange, handleSubmit } =
     useChat(options);
+
+    
 
   return (
     <div className="flex flex-col h-screen bg-black text-white font-sans">
@@ -103,8 +106,24 @@ export default function App() {
             </div>
           );
         })}
+
+           {/* Typing indicator when AI is streaming */}
+           {status === "submitted" && (
+          <div className="flex items-start justify-start">
+            <div className="mr-2 flex-none">
+              <div className="h-8 w-8 flex items-center justify-center bg-gray-700 rounded-full text-sm font-bold">
+                AI
+              </div>
+            </div>
+            <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow bg-gray-800 rounded-bl-none">
+              <div className="text-sm leading-snug whitespace-pre-wrap animate-pulse">
+                Assistant is typing...
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      
+
       {/* Input area */}
       <div className="flex items-center p-4 bg-gray-900 border-t border-gray-700">
         <input
