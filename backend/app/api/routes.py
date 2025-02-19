@@ -1,14 +1,31 @@
 # app/api/routes.py
-
-from fastapi import APIRouter, Request, HTTPException
+import os
+import json
+from fastapi import (
+    FastAPI,
+    APIRouter,
+    Request,
+    Response,
+    Cookie,
+    HTTPException,
+    Depends,
+)
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse, JSONResponse
+
 
 import asyncio
 import time
 
 
-from app.schemas.search_books import SearchRequest, SearchResponse
+from app.schemas.api import (
+    BookRequest,
+    BookResponse,
+)
+
+from app.schemas.models import Book, Message, CompletionRequest, CompletionResponse
+
+
 from app.clients.book_cache_client import BookCacheClient
 from app.clients.llm_client import DeepSeekAPIClient
 
@@ -24,15 +41,100 @@ from app.services.semantic_search import (
 
 from app.services.preprocessing import preprocess_book
 
+from app.services.rag_pipeline import sse_response_generator
+
+
 import json
 import redis
 import logging
 import numpy as np
 import torch
 
+import httpx
+import http.client
+
+import logging
+from openai import OpenAI, AsyncOpenAI
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # app/api/routes.py
 # Create a router instance to define API endpoints.
 router = APIRouter()
+
+
+DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
+
+logger = logging.getLogger(__name__)
+
+
+client = OpenAI(
+    api_key=os.environ.get("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com/v1",
+)
+
+
+@router.post("/completion")
+async def chat_stream(req: dict):
+    """
+    Stream chat completions from the DeepSeek LLM to the client via Server-Sent Events (SSE).
+
+    This endpoint accepts a POST request containing a list of messages, forwards them to the LLM API,
+    and returns the generated completion in an SSE stream. The SSE events are formatted as plain text,
+    with each event prefixed by "data:" and terminated by two newline characters.
+
+    """
+    logger.info("/completion")
+    logger.debug(json.dumps(req, indent=4))
+
+    try:
+        stream = client.chat.completions.create(
+            messages=req["messages"],
+            model="deepseek-chat",
+            max_tokens=500,
+            stream=True,
+            temperature=1.3,
+        )
+    except Exception as e:
+        logger.error("Error creating completion stream: %s", e)
+        raise HTTPException(
+            status_code=500, detail="Failed to create completion stream: %s" % e
+        )
+
+    def event_generator():
+        """
+        Generator function that iterates over the streaming response from the LLM API,
+        formats each chunk as an SSE event, and yields the encoded event to the client.
+
+        If an error occurs while processing a chunk, an SSE event with an error message is
+        yielded and the generator terminates.
+        """
+        try:
+            for chunk in stream:
+                try:
+
+                    # Yield the chunk's delta content; if missing, yield an empty string.
+                    text = chunk.choices[0].delta.content or ""
+                    sse_event = f"data: {text}\n\n"
+                    print("Yielding sse_event", repr(sse_event))
+
+                    yield sse_event.encode("utf-8")
+                except Exception as inner_e:
+                    logger.error("Error processing chunk: %s", inner_e)
+
+                    error_data = json.dumps({"error": "Error during streaming"})
+                    yield f"data: {error_data}\n\n".encode("utf-8")
+                    break
+        except Exception as gen_e:
+            logger.error("Error in event generator: %s", gen_e)
+            error_data = json.dumps({"error": "Error during streaming"})
+            yield f"data: {error_data}\n\n".encode("utf-8")
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 # -----------------------------------------------------------------------------
@@ -41,7 +143,10 @@ router = APIRouter()
 # It leverages embeddings to understand the meaning behind the query and retrieves the most relevant books.
 # -----------------------------------------------------------------------------
 @router.post("/search_books")
-async def search_books(request: Request, payload: SearchRequest):
+async def search_books(
+    request: Request,
+    payload: BookRequest,
+):
     """
     Process a search query by performing semantic search over precomputed embeddings,
     then using the RAG pipeline to generate book recommendations.
@@ -116,7 +221,8 @@ async def search_books(request: Request, payload: SearchRequest):
         # 6. Retrieve Top Book Recommendations
         # Based on similarity scores, retrieve the top 5 recommended books.
         top_books = get_top_k_books(similarity_scores, books_metadata, k=5)
-
+        print("Top Books:")
+        print(top_books)
         # 7. Construct the LLM Prompt
         book_summaries = [preprocess_book(book) for book in top_books]
         llm_prompt = (
@@ -131,6 +237,9 @@ async def search_books(request: Request, payload: SearchRequest):
             "Return only the JSON array."
         )
 
+        print("prompt")
+        print(llm_prompt)
+
         # 8. Prepare LLM Client & Streaming
         llm_client = DeepSeekAPIClient()
 
@@ -141,39 +250,29 @@ async def search_books(request: Request, payload: SearchRequest):
             },
             {"role": "user", "content": llm_prompt},
         ]
-        # print("messages:")
-        # print(messages)
+        print("messages:")
+        print(messages)
 
         # 8. Define a single streaming generator that yields chunks and then a final marker.
-        async def generate():
-            async for chunk in llm_client.async_stream(
-                model="deepseek-chat",
-                messages=messages,
-                temperature=0.7,
-            ):
-                print(chunk, end="", flush=True)
-                # Yield each chunk prefixed with "data:" (SSE format).
-                yield f"data: {chunk}\n\n"
+        # async def generate():
+        #     async for chunk in llm_client.async_stream(
+        #         model="deepseek-chat",
+        #         messages=messages,
+        #         temperature=0.7,
+        #     ):
+        #         print(chunk, end="", flush=True)
+        #         # Yield each chunk prefixed with "data:" (SSE format).
+        #         yield f"data: {chunk}\n\n"
 
         # 9. Return the StreamingResponse.
-        return StreamingResponse(generate(), media_type="text/event-stream")
+        # return StreamingResponse(generate(), media_type="text/event-stream")
+        return StreamingResponse(
+            sse_response_generator(llm_client, "deepseek-chat", messages, 0.7),
+            media_type="text/event-stream",
+        )
 
     except Exception as e:
         logging.error(f"Search failed: {e}")
         raise HTTPException(
             status_code=500, detail="An error occurred while processing your request."
         )
-
-
-def event_stream():
-    # Send event every second with data: "Message {i}"
-    for i in range(10):
-        event_str = "event: stream_event"
-        data_str = f"data: Message {i}"
-        yield f"{event_str}\n{data_str}\n\n"
-        time.sleep(1)
-
-
-@router.get("/stream")
-async def stream():
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
