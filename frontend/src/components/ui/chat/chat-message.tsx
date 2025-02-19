@@ -1,26 +1,9 @@
 import React from "react";
-import { formatDistanceToNow } from "date-fns";
-import { parseSseData } from "@utils/parse-sse-data";
 import type { Message } from "@ai-sdk/react";
 import { AiAvatar } from "@components/ui/avatars/ai-avatar";
-// Extend the default message interface
+import { formatContent, getTimeAgo } from "@utils/parse-sse-data";
 export interface ChatMessage extends Message {
   timestamp?: string;
-}
-
-export function formatContent(message: Message): string {
-  if (
-    message.role === "assistant" &&
-    message.content.trim().startsWith("data:")
-  ) {
-    return parseSseData(message.content);
-  }
-  return message.content;
-}
-
-export function getTimeAgo(timestamp: string) {
-  const dateObj = new Date(timestamp);
-  return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 
 interface ChatMessageProps {
@@ -29,7 +12,16 @@ interface ChatMessageProps {
 
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ msg }) => {
   const isAssistant = msg.role === "assistant";
-  const content = formatContent(msg);
+  let content;
+
+  try {
+    content = formatContent(msg);
+  } catch (error) {
+    console.error("Error parsing message content", error);
+    content = "An error occurred while parsing the message content";
+  }
+  const formattedContent = content.replace(/\n/g, "<br />");
+
   const relativeTime = msg.timestamp ? getTimeAgo(msg.timestamp) : "";
 
   return (
@@ -41,7 +33,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ msg }) => {
       {/* Avatar */}
       {isAssistant ? (
         <div className="mr-2 flex-none">
-        <AiAvatar/>
+          <AiAvatar />
         </div>
       ) : (
         <div className="mr-2 flex-none">
@@ -60,7 +52,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ msg }) => {
         {/* Header row: name + relative timestamp */}
         <div className="flex items-center gap-2 mb-1">
           <span className="font-semibold text-sm text-gray-200">
-            {isAssistant ? "GenerativeAgent" : "You"}
+            {isAssistant ? "Assistant" : "You"}
           </span>
           {relativeTime && (
             <span className="text-xs text-gray-400">{relativeTime}</span>

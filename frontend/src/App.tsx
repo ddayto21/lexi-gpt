@@ -50,9 +50,10 @@ export default function App() {
      * @param {ChatMessage} message The completed chat message.
      */
     onFinish: (message) => {
+      console.log("Raw message content:", message.content);
       const formattedMessage = parseSseData(message.content);
       console.log("Finished streaming message:", formattedMessage);
-      // setShowSuggestions(true);
+      setShowSuggestions(true);
     },
     /**
      * @description Callback function called when an error occurs during the chat interaction.
