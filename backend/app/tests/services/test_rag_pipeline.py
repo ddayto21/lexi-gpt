@@ -4,10 +4,19 @@ import pytest
 import re
 
 from app.services.rag_pipeline import (
-    generate_book_summaries,
+    summarize_context,
     construct_model_prompt,
     construct_messages,
+    sse_response_generator,
 )
+
+
+import os
+import pytest
+import asyncio
+
+
+from app.clients.llm_client import DeepSeekAPIClient
 
 
 def normalize_whitespace(text: str) -> str:
@@ -40,15 +49,15 @@ def normalize_messages(messages: list) -> list:
     ]
 
 
-def test_generate_book_summaries(retrieved_context_fixture, summaries_fixture):
+def test_summarize_context(retrieved_context_fixture, summaries_fixture):
     """
-    Verify that generate_book_summaries correctly extracts and formats summaries from the provided book metadata.
+    Verify that summarize_context correctly extracts and formats summaries from the provided book metadata.
 
     Args:
         retrieved_context_fixture (list): Fixture providing sample book metadata.
         summaries_fixture (list): Fixture providing the expected book summaries.
     """
-    output = generate_book_summaries(retrieved_context_fixture)
+    output = summarize_context(retrieved_context_fixture)
     print("Generated Book Summaries:", output)
     assert output == summaries_fixture
 
@@ -69,7 +78,7 @@ def test_construct_model_prompt(query_fixture, summaries_fixture):
     query = query_fixture
     summaries = summaries_fixture
 
-    expected = (
+    expected_output = (
         "User query: 'anime similar to hunter hunter'.\n"
         "\n"
         "Retrieved book details:\n"
@@ -88,8 +97,12 @@ def test_construct_model_prompt(query_fixture, summaries_fixture):
         "- Output strictly the JSON array without any additional text."
     )
 
-    output = construct_model_prompt(query, summaries)
-    assert normalize_whitespace(output) == normalize_whitespace(expected)
+    normalized_expected_output = normalize_whitespace(expected_output)
+
+    actual_output = construct_model_prompt(query, summaries)
+    normalized_actual_output = normalize_whitespace(actual_output)
+
+    assert normalized_actual_output == normalized_expected_output
 
 
 def test_construct_messages(query_fixture, summaries_fixture):
@@ -123,6 +136,42 @@ def test_construct_messages(query_fixture, summaries_fixture):
     ]
 
     output = construct_messages(prompt)
+
     normalized_expected = normalize_messages(expected)
+
     normalized_output = normalize_messages(output)
+
     assert normalized_output == normalized_expected
+
+
+async def test_sse_response_generator_integration(query_fixture, summaries_fixture):
+    """
+    Integration test for sse_response_generator using a real DeepSeekAPIClient instance.
+    This test will:
+      - Initialize the client with a valid API key.
+      - Send a test prompt.
+      - Collect SSE-formatted chunks.
+      - Verify that at least one chunk is received and the final marker is present.
+    """
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        pytest.skip("No DeepSeek API key provided, skipping integration test.")
+
+    prompt = construct_model_prompt(query_fixture, summaries_fixture)
+    messages = construct_messages(prompt)
+
+    client = DeepSeekAPIClient(api_key=api_key)
+
+    model = "deepseek-chat"
+    temperature = 0.7
+
+    results = []
+    async for chunk in sse_response_generator(client, model, messages, temperature):
+        results.append(chunk)
+
+    assert len(results) > 0, "No data received from stream."
+    # The final chunk should signal completion.
+    final_chunk = results[-1].strip()
+    assert (
+        final_chunk == 'data: {"done": true}'
+    ), "Final marker not received as expected."
