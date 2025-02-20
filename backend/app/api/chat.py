@@ -6,6 +6,7 @@ import logging
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -19,7 +20,15 @@ client = OpenAI(
 )
 
 
-@router.post("/completion")
+class SSEPayload(BaseModel):
+    content: str
+
+
+class SSEErrorPayload(BaseModel):
+    error: str
+
+
+@router.post("/chat")
 async def completion(req: dict):
     """Handles streaming chat completion requests to the DeepSeek LLM.
 
@@ -34,9 +43,7 @@ async def completion(req: dict):
     :return: An SSE stream of text events.
     :raises HTTPException: If an error occurs during the DeepSeek API interaction.
     """
-    logger.info("/completion")
-    # logger.debug(json.dumps(req, indent=4))
-    # logger.info(json.dumps(req, indent=4))
+    logger.info("/chat")
 
     # Defensive check: ensure `messages` key is present and is a list
     if "messages" not in req or not isinstance(req["messages"], list):
@@ -44,59 +51,21 @@ async def completion(req: dict):
         logger.error(error_detail)
         raise HTTPException(status_code=400, detail=error_detail)
 
-    # Inject system prompt into the conversation
-    # system_prompt = {
-    #     "role": "system",
-    #     "content": (
-    #         "book recommendations in the following format:\n\n"
-    #         "1. [Book Title 1]\n"
-    #         "* Summary: [Brief summary of the book]\n"
-    #         "* Explanation: [Why I'm recommending this book based on your preferences]\n\n"
-    #         "2. [Book Title 2]\n"
-    #         "* Summary: [Brief summary of the book]\n"
-    #         "* Explanation: [Why I'm recommending this book based on your preferences]\n\n"
-    #         "3. [Book Title 3]\n"
-    #         "* Summary: [Brief summary of the book]\n"
-    #         "* Explanation: [Why I'm recommending this book based on your preferences]\n"
-    #     ),
-    # }
-
-    # # Log messages before insertion
-    # logger.debug(
-    #     "Messages before system prompt insertion:\n%s",
-    #     json.dumps(req["messages"], indent=4),
-    # )
-
-    # try:
-    #     req["messages"].insert(0, system_prompt)
-    # except Exception as insert_error:
-    #     logger.error("Error inserting system prompt: %s", insert_error)
-    #     raise HTTPException(
-    #         status_code=400, detail=f"Failed to insert system prompt: {insert_error}"
-    #     )
-
-    # Log messages after insertion
-    # logger.debug(
-    #     "Messages after system prompt insertion:\n%s",
-    #     json.dumps(req["messages"], indent=4),
-    # )
-
     try:
         stream = client.chat.completions.create(
             messages=req["messages"],
             model="deepseek-chat",
             max_tokens=500,
             stream=True,
-            temperature=1.3,
+            temperature=0.3,
         )
     except Exception as e:
-        # Return error as JSON in the SSE stream.  Client should handle this.
-        # Return error as JSON in the SSE stream.  Client should handle this.
+
         def error_generator(e):
-            error_data = json.dumps(
-                {"error": f"Failed to create completion stream: {e}"}
+            error_payload = SSEErrorPayload(
+                error=f"Failed to create completion stream: {e}"
             )
-            yield f"data: {error_data}\n\n".encode("utf-8")
+            yield f"data: {error_payload.json()}\n\n".encode("utf-8")
 
         return StreamingResponse(
             error_generator(e), media_type="text/event-stream", status_code=200
@@ -115,20 +84,20 @@ async def completion(req: dict):
         try:
             for chunk in stream:
                 try:
-                    # Yield the chunk's delta content; if missing, yield an empty string.
+                    # Crate payload using pydantic model
                     text = chunk.choices[0].delta.content or ""
-                    sse_event = f"data: {text}\n\n"
+                    payload = SSEPayload(content=text)
+                    yield f"data: {payload.json()}\n\n".encode("utf-8")
 
-                    yield sse_event.encode("utf-8")
                 except Exception as inner_e:
-                    logger.error("Error processing chunk: %s", inner_e)
+                    error_payload = SSEErrorPayload(error="Error during streaming")
+                    yield f"data: {error_payload.json()}\n\n".encode("utf-8")
+                    logger.error("Error during streaming: %s", inner_e)
 
-                    error_data = json.dumps({"error": "Error during streaming"})
-                    yield f"data: {error_data}\n\n".encode("utf-8")
                     break  # Stop processing further chunks on error
         except Exception as gen_e:
-            logger.error("Error in event generator: %s", gen_e)
-            error_data = json.dumps({"error": "Error during streaming"})
-            yield f"data: {error_data}\n\n".encode("utf-8")
+            error_payload = SSEErrorPayload(error="Error during streaming")
+            yield f"data: {error_payload.json()}\n\n".encode("utf-8")
+            logger.error("Error during streaming: %s", gen_e)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

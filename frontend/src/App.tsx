@@ -26,10 +26,10 @@ export default function App() {
   const options: UseChatOptions = {
     /**
      * @description The API endpoint for chat completions. This URL is proxied by the frontend
-     * to the backend's `/completion` route, which in turn forwards requests to the DeepSeek LLM API.
+     * to the backend's `/chat` route, which in turn forwards requests to the DeepSeek LLM API.
      * @type {string}
      */
-    api: "/api/completion",
+    api: "/api/chat",
     streamProtocol: "text",
     /**
      * @description Initial messages displayed in the chat window. This provides a starting point for the conversation.
