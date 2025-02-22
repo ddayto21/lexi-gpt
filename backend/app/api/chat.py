@@ -7,6 +7,8 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from app.schemas.chat import ChatRequest, ChatMessage
+
 
 load_dotenv()
 
@@ -29,33 +31,33 @@ class SSEErrorPayload(BaseModel):
 
 
 @router.post("/chat")
-async def completion(req: dict):
+async def chat(req: ChatRequest):
     """Handles streaming chat completion requests to the DeepSeek LLM.
 
     This endpoint proxies chat messages to the DeepSeek API and streams the LLM's
-    response back to the client using Server-Sent Events (SSE).
-
-    The request body must be a JSON object with a "messages" key containing an array
-    of message objects (each with "role" and "content" keys). A system prompt is
-    injected to instruct the model to provide book recommendations in a predefined format.
+    response back to the client using Server-Sent Events (SSE). Every event is
+    properly prefixed with "data:" and terminated with two newlines.
 
     :param req: The chat messages (dict).
     :return: An SSE stream of text events.
     :raises HTTPException: If an error occurs during the DeepSeek API interaction.
     """
     logger.info("/chat")
+    logger.info(req.model_dump_json(indent=2))
 
-    # Defensive check: ensure `messages` key is present and is a list
-    if "messages" not in req or not isinstance(req["messages"], list):
-        error_detail = "Request must include 'messages' as a list."
-        logger.error(error_detail)
-        raise HTTPException(status_code=400, detail=error_detail)
+    # Prepend the system prompt to the client messages.
+    system_prompt = {
+        "role": "system",
+        "content": "Please provide only 3 recommendations. If you do not have a good recommendation, please mention that.",
+    }
+    # Insert the system prompt at the beginning of the messages list.
+    req.messages.insert(0, system_prompt)
 
     try:
         stream = client.chat.completions.create(
-            messages=req["messages"],
+            messages=req.messages,
             model="deepseek-chat",
-            max_tokens=500,
+            max_tokens=300,
             stream=True,
             temperature=0.3,
         )
@@ -65,7 +67,8 @@ async def completion(req: dict):
             error_payload = SSEErrorPayload(
                 error=f"Failed to create completion stream: {e}"
             )
-            yield f"data: {error_payload.json()}\n\n".encode("utf-8")
+            sse_error_event = f"data: {error_payload.json()}\n\n"
+            yield sse_error_event.encode("utf-8")
 
         return StreamingResponse(
             error_generator(e), media_type="text/event-stream", status_code=200
@@ -74,30 +77,38 @@ async def completion(req: dict):
     def event_generator():
         """
         Generator function that yields SSE events from the LLM's streaming response.
-
-        This function iterates through the chunks received from the DeepSeek API,
-        formats each chunk as an SSE event (JSON payload with "content" key), and yields it.
-        Error handling is included to catch issues during chunk processing or within the
-        generator itself, sending error messages back to the client as JSON in SSE events.
+        Each event is prefixed with "data:" and terminated with two newlines.
+        Verbose logging is added to help debug the raw chunks and SSE formatting.
         """
 
         try:
             for chunk in stream:
                 try:
-                    # Crate payload using pydantic model
+                    logger.debug("Received chunk: %s", chunk)
+                    # Log the full chunk structure for inspection.
+                    if hasattr(chunk, "choices"):
+                        logger.debug("Chunk choices: %s", chunk.choices)
+                    else:
+                        logger.debug("Chunk has no 'choices' attribute.")
+
+                    # Extract delta content; if missing, default to empty string.
                     text = chunk.choices[0].delta.content or ""
+                    logger.debug("Extracted text from chunk: '%s'", text)
                     payload = SSEPayload(content=text)
-                    yield f"data: {payload.json()}\n\n".encode("utf-8")
-
+                    sse_event = f"data: {payload.json()}\n\n"
+                    logger.debug("Formatted SSE event: %s", sse_event)
+                    yield sse_event.encode("utf-8")
                 except Exception as inner_e:
+                    logger.error("Error processing chunk: %s", inner_e)
                     error_payload = SSEErrorPayload(error="Error during streaming")
-                    yield f"data: {error_payload.json()}\n\n".encode("utf-8")
-                    logger.error("Error during streaming: %s", inner_e)
-
+                    sse_error_event = f"data: {error_payload.json()}\n\n"
+                    logger.debug("Yielding SSE error event: %s", sse_error_event)
+                    yield sse_error_event.encode("utf-8")
                     break  # Stop processing further chunks on error
         except Exception as gen_e:
+            logger.error("Error in event generator: %s", gen_e)
             error_payload = SSEErrorPayload(error="Error during streaming")
-            yield f"data: {error_payload.json()}\n\n".encode("utf-8")
-            logger.error("Error during streaming: %s", gen_e)
+            sse_error_event = f"data: {error_payload.json()}\n\n"
+            yield sse_error_event.encode("utf-8")
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

@@ -34,27 +34,19 @@ export default function App() {
     streamProtocol: "text",
 
     /**
-     * @description Initial messages displayed in the chat window. These provide a starting point for the conversation.
-     * A system message is included to instruct the model to only provide 3 recommendations, and if no good recommendation
-     * is available, to indicate that.
+     * @description Initial messages displayed in the chat window. This provides a starting point for the conversation.
      * @type {ChatMessage[]}
      */
     initialMessages: [
       {
-        id: "system-1",
-        role: "system",
-        content:
-          "Please provide only 3 recommendations. If you do not have a good recommendation, please mention that.",
-        timestamp: new Date().toISOString(),
-      } as ChatMessage,
-      {
         id: "1",
         role: "assistant",
         content:
-          "Hello! I am a book recommendation assistant. To give you the best recommendations, please tell me what you're looking for in a book. For example, you can tell me the genre, themes, authors you like, or anything else that's important to you.",
+          "Hello! I’m here to help you find your next great read. Tell me a bit about what you’re in the mood for—whether it’s a favorite genre, specific themes, or authors you love. Any details will help me make the perfect recommendation for you.",
         timestamp: new Date().toISOString(),
       } as ChatMessage,
     ],
+
     /**
      * @description Flag to enable or disable sending extra message fields in the request to the chat API.
      * If this is not set to true, then the message content is the only field sent to the API.
@@ -99,15 +91,15 @@ export default function App() {
     useChat(options);
 
   async function sendMessage() {
-    console.log(`sendMessage() `);
+    console.log(`sendMessage() `)
     await sendMessageWithContent(input);
   }
 
   // New: Generalized send function that clears the input immediately
   async function sendMessageWithContent(content: string) {
-    console.log(`sendMessageWithContent(content) `);
-    console.log(`content: ${content} `);
-    if (!content.trim()) return;
+    console.log(`sendMessageWithContent(content) `)
+    console.log(`content: ${content} `)
+    if (!content.trim()) return; 
 
     const messagePayload: ChatMessage = {
       id: String(Date.now()),
@@ -124,7 +116,7 @@ export default function App() {
 
   // When a prompt is clicked, that message and hide suggestions.
   const onPromptClick = (promptContent: string) => {
-    console.log(`onPromptClick() `);
+    console.log(`onPromptClick() `)
     sendMessageWithContent(promptContent);
     setShowSuggestions(false);
   };
