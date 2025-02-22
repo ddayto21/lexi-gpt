@@ -1,11 +1,10 @@
 /**
  * @fileoverview Unit tests for the SSE parsing and formatting functions.
- * 
- * These tests verify that the helper functions produce a cleaned markdown string
- * by extracting SSE tokens, joining them with a single space, and performing cleanup.
  *
- * Note: The current implementation concatenates tokens with a single space,
- * so we update the expected outputs accordingly.
+ * These tests verify that the helper functions (extractTokens, joinTokens, parseSseData, and formatContent)
+ * produce the expected output. The current behavior concatenates tokens with a single space.
+ * (Previously, the expected output used newline characters, but we have updated the tests to reflect
+ * the single-space concatenation.)
  */
 
 import { extractTokens, joinTokens, parseSseData, formatContent, getTimeAgo } from "../../utils/parse-sse-data";
@@ -14,7 +13,8 @@ import type { Message } from "@ai-sdk/react";
 // Tests for extractTokens
 describe("extractTokens", () => {
   /**
-   * Test that extractTokens splits the input correctly and returns only tokens that start with "data:".
+   * Checks that extractTokens splits the input by newlines, removes the "data:" prefix,
+   * and returns only the valid tokens.
    */
   test("should extract tokens from SSE input", () => {
     const input = `data: Hello\n\ndata: World\n\nrandom: Ignored`;
@@ -23,7 +23,7 @@ describe("extractTokens", () => {
   });
 
   /**
-   * Test that extractTokens parses JSON content correctly.
+   * Checks that if a token contains JSON, extractTokens parses it and returns the 'content' field.
    */
   test("should parse JSON tokens correctly", () => {
     const jsonContent = JSON.stringify({ content: "Parsed JSON" });
@@ -33,7 +33,7 @@ describe("extractTokens", () => {
   });
 
   /**
-   * Test that empty or whitespace-only input returns an empty array.
+   * Ensures that an empty or whitespace-only input returns an empty array.
    */
   test("should return an empty array for empty or whitespace-only input", () => {
     expect(extractTokens("")).toEqual([]);
@@ -44,7 +44,7 @@ describe("extractTokens", () => {
 // Tests for joinTokens
 describe("joinTokens", () => {
   /**
-   * Test that joinTokens correctly joins an array of tokens with a single space.
+   * Verifies that joinTokens concatenates an array of tokens with a single space.
    */
   test("should join tokens with a single space", () => {
     const tokens = ["Hello", "World"];
@@ -53,7 +53,7 @@ describe("joinTokens", () => {
   });
 
   /**
-   * Test that joinTokens collapses extra whitespace between tokens.
+   * Verifies that joinTokens collapses extra whitespace between tokens.
    */
   test("should collapse extra whitespace between tokens", () => {
     const tokens = ["Hello", "   World  "];
@@ -65,14 +65,14 @@ describe("joinTokens", () => {
 // Tests for parseSseData (full pipeline)
 describe("parseSseData", () => {
   /**
-   * Test that an empty input returns an empty string.
+   * Verifies that an empty string input produces an empty string.
    */
   test("should return an empty string for empty input", () => {
     expect(parseSseData("")).toBe("");
   });
 
   /**
-   * Test that a single SSE event is parsed correctly.
+   * Verifies that a single SSE event is parsed correctly.
    */
   test("should parse a single SSE event correctly", () => {
     const input = "data: Hello\n\n";
@@ -81,7 +81,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that multiple SSE events are parsed and concatenated with a single space.
+   * Verifies that multiple SSE events are parsed correctly and concatenated with a single space.
    */
   test("should parse multiple SSE events correctly", () => {
     const input = "data: Hello\n\ndata: World\n\n";
@@ -90,7 +90,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that lines not starting with "data:" are ignored.
+   * Verifies that lines not starting with "data:" are ignored.
    */
   test("should ignore lines that do not start with 'data:'", () => {
     const input = "random: Not included\ndata: Included\n";
@@ -99,7 +99,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that extra spaces after 'data:' are trimmed.
+   * Verifies that extra spaces after the "data:" prefix are trimmed.
    */
   test("should handle extra spaces after 'data:'", () => {
     const input = "data:    Spaced\n\n";
@@ -108,7 +108,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that multiple SSE events are concatenated with a single space.
+   * Verifies that multiple SSE events are concatenated with a single space between them.
    */
   test("should concatenate events with a single space", () => {
     const input = "data: Part1\n\ndata: Part2\n\ndata: Part3\n\n";
@@ -117,7 +117,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that multiple data lines on a single physical line are handled correctly.
+   * Verifies that multiple data lines on a single physical line are handled correctly.
    */
   test("should handle multiple data lines", () => {
     const input = "data: Hello\ndata: World!\n\n";
@@ -126,7 +126,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that input containing only whitespace returns an empty string.
+   * Verifies that if the input contains only whitespace, an empty string is returned.
    */
   test("should return empty string for no data", () => {
     expect(parseSseData("")).toBe("");
@@ -134,7 +134,7 @@ describe("parseSseData", () => {
   });
 
   /**
-   * Test that invalid (non-string) input throws an error.
+   * Verifies that non-string input throws an appropriate error.
    */
   test("should throw error on invalid input", () => {
     expect(() => parseSseData(null as unknown as string)).toThrow("Input must be a string");
@@ -144,8 +144,8 @@ describe("parseSseData", () => {
 // Tests for formatContent
 describe("formatContent", () => {
   /**
-   * Test that formatContent processes an assistant message correctly.
-   * It should use parseSseData to clean the SSE data and return the formatted content.
+   * Verifies that formatContent processes an assistant message by parsing its SSE data and
+   * returning the cleaned content.
    */
   test("formatContent works with assistant messages", () => {
     const message: Message = {
@@ -157,9 +157,9 @@ describe("formatContent", () => {
   });
 
   /**
-   * Test that formatContent correctly formats bullet lists and headings.
-   * Since the current implementation joins tokens with a single space, the expected output
-   * is a single-line string with spaces between tokens.
+   * Verifies that formatContent preserves markdown structure for bullet lists and headings.
+   * Since the current implementation concatenates tokens with a single space,
+   * the expected output is a single-line string.
    */
   test("should format bullet lists and headings correctly", () => {
     const input = `
@@ -173,19 +173,32 @@ data: **Bold Text**
     const expectedOutput = "# Heading 1 - Bullet 1 - Bullet 2 Bold Text";
     expect(parseSseData(input)).toBe(expectedOutput);
   });
+
+  /**
+   * Verifies that formatContent does not modify non-assistant messages.
+   */
+  test("returns raw content for non-assistant messages", () => {
+    const message: Message = {
+      role: "user",
+      content: "Just a normal text message.",
+      id: "test-id",
+    };
+    const formatted = formatContent(message);
+    expect(formatted).toBe("Just a normal text message.");
+  });
 });
 
-// Optional: Tests for getTimeAgo
+// Tests for getTimeAgo
 describe("getTimeAgo", () => {
   /**
-   * Test that getTimeAgo returns an empty string if no timestamp is provided.
+   * Verifies that getTimeAgo returns an empty string if no timestamp is provided.
    */
   test("should return an empty string if no timestamp is provided", () => {
     expect(getTimeAgo()).toBe("");
   });
 
   /**
-   * Test that getTimeAgo returns a non-empty relative time string for a valid timestamp.
+   * Verifies that getTimeAgo returns a non-empty relative time string for a valid timestamp.
    */
   test("should return a relative time string for a valid timestamp", () => {
     const now = new Date().toISOString();
