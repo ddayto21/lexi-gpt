@@ -1,78 +1,116 @@
 import type { Message } from "@ai-sdk/react";
 import { formatDistanceToNow } from "date-fns";
-import { removeSpacesAfterHyphens } from "./remove-spaces-after-hyphens";
+
+/* ------------------------------------------------------------------
+ *                   High-Level Orchestrator
+ * ------------------------------------------------------------------ */
+
 /**
- * Parses a string containing SSE formatted data and returns a cleaned markdown string.
+ * Parses a string containing SSE-formatted data and returns a cleaned, Markdown-friendly string.
  *
- * Steps:
- * 1. Validates that the input is a string.
- * 2. Extracts tokens using extractTokens().
- * 3. Joins tokens using joinTokens(), preserving markdown markers.
- * 4. Cleans up extra spaces around punctuation and quotes.
- * 5. Applies additional post-processing (via postProcess()) to collapse unintended intra-word spaces.
+ * Overall steps:
+ * 1. Validate input is a string.
+ * 2. Extract tokens using extractTokens().
+ * 3. Join tokens with joinTokens(), which preserves markdown markers intelligently.
+ * 4. Clean punctuation and quotes.
+ * 5. Post-process any leftover spacing issues.
  *
- * @param {string} sseText - The raw SSE text input containing one or more SSE events.
- * @returns {string} The cleaned and concatenated markdown content.
+ * @param {string} sseText - The raw SSE text with SSE events.
+ * @returns {string} - The cleaned and concatenated markdown content.
  * @throws {Error} If the input is not a string.
  */
 export function parseSseData(sseText: string): string {
-  if (typeof sseText !== "string") {
-    throw new Error("Input must be a string");
-  }
+  validateSseInput(sseText);
+
+  // 2) Extract tokens (SSE lines, possibly JSON lines)
   const tokens = extractTokens(sseText);
+
+  // 3) Join tokens with intelligent spacing (for Markdown)
   let result = joinTokens(tokens);
 
+  // 4) Clean punctuation/spaces + quotes
   result = cleanPunctuation(result);
   result = cleanQuotes(result);
 
+  // 5) Final post-processing (collapsing hyphens, etc.)
   result = postProcess(result);
 
   return result;
 }
+
+/* ------------------------------------------------------------------
+ *                   Helper: Validate SSE Input
+ * ------------------------------------------------------------------ */
+
+function validateSseInput(sseText: unknown): asserts sseText is string {
+  if (typeof sseText !== "string") {
+    throw new Error("parseSseData input must be a string.");
+  }
+}
+
+/* ------------------------------------------------------------------
+ *                   Helper: Extract Tokens
+ * ------------------------------------------------------------------ */
+
 /**
- * Extracts and cleans SSE tokens from the input string.
+ * Extracts tokens from the given SSE text:
+ * 1) Split by newlines.
+ * 2) If a line starts with "data:", remove that prefix.
+ * 3) Trim each line.
+ * 4) If the line is valid JSON ({...} or [...]), parse and return parsed.content.
+ * 5) Filter out any empty lines.
  *
- * Each token is a line that starts with "data:".
- * This function removes the prefix and trims each token.
- *
- * @param {string} sseText - The raw SSE text input.
- * @returns {string[]} An array of cleaned tokens.
+ * @param {string} sseText - The full SSE text.
+ * @returns {string[]} An array of extracted content tokens.
  */
 export function extractTokens(sseText: string): string[] {
-  return sseText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => {
-      const rawContent = line.replace(/^data:\s*/, "").trim();
-      if (rawContent.startsWith("{") || rawContent.startsWith("[")) {
-        try {
-          const parsed = JSON.parse(rawContent);
-          return parsed.content || "";
-        } catch (err) {
-          console.error("Error parsing SSE chunk as JSON:", err);
-          return "";
+  return (
+    sseText
+      // (1) Split by newlines (support both \r\n and \n)
+      .split(/\r?\n/)
+      // (2) Strip "data:" prefix if present
+      .map((line) => {
+        if (line.trimStart().startsWith("data:")) {
+          return line.replace(/^(\s*)data:\s*/, "$1"); // remove data:
         }
-      }
-      return rawContent;
-    })
-    .filter((token) => token.length > 0);
+        return line;
+      })
+      // (3) Trim each line
+      .map((line) => line.trim())
+      // (4) If JSON, parse and return `parsed.content`
+      .map((rawContent) => {
+        if (rawContent.startsWith("{") || rawContent.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(rawContent);
+            return parsed.content || "";
+          } catch (err) {
+            console.error("Error parsing SSE chunk as JSON:", err);
+            return "";
+          }
+        }
+        return rawContent;
+      })
+      // (5) Remove empty tokens
+      .filter((token) => token.length > 0)
+  );
 }
+
+/* ------------------------------------------------------------------
+ *                   Helper: Join Tokens Intelligently
+ * ------------------------------------------------------------------ */
 
 /**
  * Joins an array of tokens into a single string using a single space,
- * with intelligent merging that preserves markdown syntax.
+ * with "intelligent" merging that preserves Markdown syntax.
  *
- * This function performs the following:
- * - Trims each token.
- * - Inserts a single space between tokens by default.
- * - If a token is solely punctuation, it appends it directly without an extra space.
- * - If a token starts with an apostrophe or markdown marker (e.g. "**"), it appends it directly.
- * - If the previous token is exactly one alphabetical character (and not "a" or "I") and the current token
- *   starts with a letter, they are merged without an intervening space.
+ * Examples:
+ * - If a token is solely punctuation, append it without a space.
+ * - If a token starts with an apostrophe or markdown marker (e.g. "**"), append it directly.
+ * - If the previous token is exactly 1 alphabetical character, merge them without a space
+ *   (e.g., "L apple" => "Lapple" if "L" is not 'a' or 'I').
  *
- * @param {string[]} tokens - An array of cleaned tokens.
- * @returns {string} The concatenated string with normalized whitespace.
+ * @param {string[]} tokens - The array of tokens from SSE data.
+ * @returns {string} Concatenated string with normalized spacing.
  */
 export function joinTokens(tokens: string[]): string {
   return tokens
@@ -80,60 +118,64 @@ export function joinTokens(tokens: string[]): string {
       const trimmed = token.trim();
       if (index === 0) return trimmed;
 
-      // If token is solely punctuation, append it without a space.
+      // If token is purely punctuation, append it with no space
       if (/^[,.!?;:]$/.test(trimmed)) {
         return acc + trimmed;
       }
 
-      // If token starts with an apostrophe or markdown marker, append it directly.
+      // If token starts with an apostrophe or asterisks (Markdown bold), no space
       if (/^['*]/.test(trimmed)) {
         return acc + trimmed;
       }
 
-      // Get the last word from the accumulated string, trimmed.
+      // Get the last word in 'acc'
       const accWords = acc.split(" ");
-      const lastWord = accWords[accWords.length - 1].trim();
+      const lastWord = accWords[accWords.length - 1];
 
-      // If the last word is exactly one alphabetical character (e.g., "M") and the current token starts with a letter,
-      // merge them without an extra space.
+      // If the last word is exactly 1 letter, we might merge
       if (
-        lastWord.length === 1 &&
         /^[A-Za-z]$/.test(lastWord) &&
-        /^[A-Za-z]/.test(trimmed)
+        /^[A-Za-z]/.test(trimmed) &&
+        !/^[aiAI]$/.test(lastWord) // Maybe skip merging 'a' or 'I' if that's undesired
       ) {
         accWords[accWords.length - 1] = lastWord + trimmed;
         return accWords.join(" ");
       }
 
-      // Otherwise, join with a single space.
+      // Otherwise, join with a space
       return acc + " " + trimmed;
     }, "")
+    // Collapse any accidental multiple spaces
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/* ------------------------------------------------------------------
+ *                   Helper: Clean Punctuation
+ * ------------------------------------------------------------------ */
+
 /**
- * Cleans up punctuation in a string by:
- * - Removing extra spaces before punctuation marks.
- * - Ensuring exactly one space after punctuation if not at the end of the string.
+ * Cleans punctuation by removing extra spaces before punctuation,
+ * and ensuring exactly one space after punctuation if not EOL.
  *
  * @param {string} text - The text to clean.
- * @returns {string} The cleaned text.
+ * @returns {string} Cleaned text.
  */
 export function cleanPunctuation(text: string): string {
-  // Remove extra spaces before punctuation.
+  // Remove extra spaces before punctuation
   let result = text.replace(/\s+([,.!?;:])/g, "$1");
-  // Ensure exactly one space after punctuation if not followed by a space.
-  result = result.replace(/([,.!?;:])\s*/g, "$1 ");
+  // Ensure 1 space after punctuation if next char isn't space or end of line
+  result = result.replace(/([,.!?;:])(?=[^\s])/g, "$1 ");
   return result.trim();
 }
 
+/* ------------------------------------------------------------------
+ *                   Helper: Clean Quotes
+ * ------------------------------------------------------------------ */
+
 /**
- * Cleans up quotes in a string by removing extra spaces inside quoted content.
- *
- * This function searches for text enclosed in double quotes and trims any
- * leading or trailing whitespace inside the quotes. For example, it converts:
- *
- *   'She said , " hello "'  --> 'She said , "hello"'
+ * Cleans up quotes in a string by removing extra spaces inside double quotes.
+ * E.g. "She said , " hello "" => "She said , "hello""
  *
  * @param {string} text - The text to clean.
  * @returns {string} The cleaned text.
@@ -142,29 +184,105 @@ export function cleanQuotes(text: string): string {
   return text.replace(/"([^"]*?)"/g, (_match, p1) => `"${p1.trim()}"`).trim();
 }
 
+/* ------------------------------------------------------------------
+ *                   Helper: Post Process
+ * ------------------------------------------------------------------ */
+
+/**
+ * Applies final transformations to the text. Typically:
+ * 1) Trim text
+ * 2) Remove extra spaces before punctuation
+ * 3) Collapse multiple spaces
+ * 4) Trim inside quotes
+ * 5) Handle apostrophe + "s" spacing
+ * 6) Remove extra spaces after hyphens
+ */
+export function postProcess(text: string): string {
+  let result = text.trim();
+
+  // Remove extra spaces before punctuation
+  result = result.replace(/\s+([,.!?;:])/g, "$1");
+  // Ensure a space after punctuation if next char isn't a space
+  result = result.replace(/([,.!?;:])(?=[^\s])/g, "$1 ");
+
+  // Collapse multiple spaces
+  result = result.replace(/\s+/g, " ").trim();
+
+  // Trim inside double quotes
+  result = result.replace(/"([^"]*?)"/g, (_m, p1) => `"${p1.trim()}"`);
+
+  // Remove unwanted space between a word and "'s"
+  result = result.replace(/(\w)\s+(')\s*(s\b)/gi, "$1$2$3");
+
+  // Remove extra spaces after hyphens (like "heart-p ounding" => "heart-pounding")
+  // This is a simpler approach that won't remove newlines:
+  result = removeSpacesAfterHyphens(result);
+
+  return result;
+}
+
+/* ------------------------------------------------------------------
+ *                   Helper: Remove Spaces After Hyphens
+ * ------------------------------------------------------------------ */
+
+/**
+ * Collapses spaces after a hyphen if it's in the same word,
+ * preserving line breaks (e.g. no removing newlines).
+ */
+export function removeSpacesAfterHyphens(text: string): string {
+  return text.replace(/-[^\S\r\n]+/g, "-");
+}
+
+/* ------------------------------------------------------------------
+ *                   Format Chat Content for Display
+ * ------------------------------------------------------------------ */
+
 /**
  * Formats the content of a chat message for display in the chat window.
  *
- * If the message is from the assistant and contains SSE data (starting with "data:"),
- * the function parses the data and returns the cleaned content.
- *
- * @param {Message} message - The chat message object.
- * @returns {string} The formatted content.
+ * 1) Convert `message.content` to string safely (handles null/undefined).
+ * 2) If it's an assistant message & starts with "data:", parse SSE data.
+ * 3) Remove in-word hyphen spacing, preserving Markdown bullets.
+ * 4) Return the final string for rendering as Markdown.
  */
 export function formatContent(message: Message): string {
-  if (message.role === "assistant" && typeof message.content === "string") {
-    const trimmedContent = message.content.trim();
-    if (trimmedContent.startsWith("data:")) {
-      return parseSseData(trimmedContent);
-    }
+  // (1) Safely coerce to string
+  let rawContent = message?.content != null ? String(message.content) : "";
+  rawContent = rawContent.trim();
+
+  // (2) If assistant role & starts with "data:", parse SSE data
+  if (message.role === "assistant" && rawContent.startsWith("data:")) {
+    rawContent = parseSseData(rawContent);
   }
-  return message.content ? String(message.content) : "";
+
+  // (3) Remove spaces after in-word hyphens, preserving bullets
+  rawContent = removeSpacesAfterInWordHyphen(rawContent);
+
+  // (4) Return result
+  return rawContent;
 }
+
 /**
- * Returns a human-readable string indicating how long ago the timestamp occurred.
+ * Removes extra spaces that appear after a hyphen, but only if
+ * a non-whitespace character precedes the hyphen.
+ * (Prevents collapsing Markdown bullets like "- Bullet".)
  *
- * @param {string} [timestamp] - The timestamp string.
- * @returns {string} The relative time (e.g., "2 hours ago").
+ * Example:
+ *   "heart-p ounding" => "heart-pounding"
+ *   leaves "\n- Bullet" intact on its own line.
+ */
+function removeSpacesAfterInWordHyphen(text: string): string {
+  // Matches hyphen + spaces only if preceded by a non-whitespace char
+  // This preserves bullet lines, e.g. "\n- My bullet" is untouched.
+  return text.replace(/(?<=\S)-[^\S\r\n]+/g, "-");
+}
+
+/* ------------------------------------------------------------------
+ *                   Utility: Relative Timestamp
+ * ------------------------------------------------------------------ */
+
+/**
+ * Returns a human-readable string like "2 hours ago" for the given timestamp.
  */
 export function getTimeAgo(timestamp?: string): string {
   if (!timestamp) return "";
@@ -173,47 +291,3 @@ export function getTimeAgo(timestamp?: string): string {
     ? ""
     : formatDistanceToNow(dateObj, { addSuffix: true });
 }
-
-/**
- * Post-processes the text by cleaning up extra spaces around punctuation, quotes,
- * and within words that have been unintentionally split.
- *
- * The function performs the following steps:
- * 1. Trims the entire text.
- * 2. Removes extra spaces before punctuation and ensures exactly one space after punctuation.
- * 3. Collapses multiple spaces into a single space.
- * 4. Trims the content inside double quotes.
- * 5. Removes any unwanted space between a word and an apostrophe followed by "s".
- * 6. Removes extra spaces after hyphens in words (e.g. "heart-p ounding" becomes "heart-pounding").
- * 
- * @param {string} text - The text to clean.
- * @returns {string} The cleaned text.
- */
-export function postProcess(text: string): string {
-  // 1. Trim the entire text.
-  let result = text.trim();
-
-  // 2. Remove extra spaces before punctuation marks.
-  result = result.replace(/\s+([,.!?;:])/g, "$1");
-  // Ensure exactly one space after punctuation if not at end-of-line.
-  result = result.replace(/([,.!?;:])(?=[^\s])/g, "$1 ");
-
-  // 3. Collapse multiple spaces into a single space.
-  result = result.replace(/\s+/g, " ").trim();
-
-  // 4. Trim the content inside double quotes.
-  // This finds text between double quotes and trims any leading/trailing spaces.
-  result = result.replace(/"([^"]*?)"/g, (_match, p1) => `"${p1.trim()}"`);
-
-  // 5. Remove unwanted space between a word and an apostrophe followed by "s".
-  // Matches a word character, one or more spaces, then an apostrophe, optional spaces, then "s".
-  result = result.replace(/(\w)\s+(')\s*(s\b)/gi, "$1$2$3");
-
-
-  // 6. Remove extra spaces immediately following a hyphen in a hyphenated word.
-  result = removeSpacesAfterHyphens(result);
-
-  return result;
-}
-
-

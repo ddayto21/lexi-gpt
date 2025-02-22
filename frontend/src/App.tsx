@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useChat, type Message, type UseChatOptions } from "@ai-sdk/react";
-import { parseSseData } from "@utils/parse-sse-data";
+import { formatContent } from "@utils/parse-sse-data";
 
 import { Header } from "@components/ui/header";
 
@@ -60,11 +60,7 @@ export default function App() {
      */
 
     onFinish: (message) => {
-      console.log("onFinish() ");
-
-      const formattedMessage = parseSseData(message.content);
-      console.log("formattedMessage:");
-      console.log(formattedMessage);
+      message.content = formatContent(message);
       setShowSuggestions(true);
     },
     /**
@@ -87,19 +83,19 @@ export default function App() {
     },
   };
 
-  const { messages, input, status, handleInputChange, append } =
+  const { messages, input, status, handleInputChange, append, setInput } =
     useChat(options);
 
   async function sendMessage() {
-    console.log(`sendMessage() `)
+    console.log(`sendMessage() `);
     await sendMessageWithContent(input);
   }
 
   // New: Generalized send function that clears the input immediately
   async function sendMessageWithContent(content: string) {
-    console.log(`sendMessageWithContent(content) `)
-    console.log(`content: ${content} `)
-    if (!content.trim()) return; 
+    console.log(`sendMessageWithContent(content) `);
+    console.log(`content: ${content} `);
+    if (!content.trim()) return;
 
     const messagePayload: ChatMessage = {
       id: String(Date.now()),
@@ -112,11 +108,12 @@ export default function App() {
     console.log(messagePayload);
 
     await append(messagePayload);
+    setInput("");
   }
 
   // When a prompt is clicked, that message and hide suggestions.
   const onPromptClick = (promptContent: string) => {
-    console.log(`onPromptClick() `)
+    console.log(`onPromptClick() `);
     sendMessageWithContent(promptContent);
     setShowSuggestions(false);
   };

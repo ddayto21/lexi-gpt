@@ -90,5 +90,9 @@ const markdownOptions = {
  * @returns {JSX.Element} A React element that renders the formatted markdown.
  */
 export const ChatMarkdown: React.FC<{ content: string }> = ({ content }) => {
-  return <Markdown options={markdownOptions}>{content}</Markdown>;
+  // Convert single newlines to "  \n" (two spaces before the newline).
+  // This tells Markdown that each single newline is a line break.
+  const forceLineBreaks = content.replace(/\n/g, "  \n");
+
+  return <Markdown options={markdownOptions}>{forceLineBreaks}</Markdown>;
 };
