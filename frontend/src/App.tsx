@@ -30,7 +30,9 @@ export default function App() {
      * @type {string}
      */
     api: "/api/chat",
+
     streamProtocol: "text",
+
     /**
      * @description Initial messages displayed in the chat window. This provides a starting point for the conversation.
      * @type {ChatMessage[]}
@@ -44,11 +46,19 @@ export default function App() {
         timestamp: new Date().toISOString(),
       } as ChatMessage,
     ],
+
+    /**
+     * @description Flag to enable or disable sending extra message fields in the request to the chat API.
+     * If this is not set to true, then the message content is the only field sent to the API.
+     * @type {boolean}
+     */
+    sendExtraMessageFields: true,
     /**
      * @description Callback function called when a complete message has been received and processed.
      * The `message` object contains the full content of the streamed response, which might need parsing.
      * @param {ChatMessage} message The completed chat message.
      */
+
     onFinish: (message) => {
       console.log("Raw message content:", message.content);
       const formattedMessage = parseSseData(message.content);
@@ -70,30 +80,41 @@ export default function App() {
      */
     onResponse: (response) => {
       console.log("Received HTTP response from server:", response);
+      const headers = response.headers;
+      console.log("Response headers:", headers);
     },
   };
 
-  const { messages, input, setInput, handleInputChange, append, status } =
+  const { messages, input, status, handleInputChange, append } =
     useChat(options);
 
   async function sendMessage() {
+    console.log(`sendMessage() `)
     await sendMessageWithContent(input);
   }
 
   // New: Generalized send function that clears the input immediately
   async function sendMessageWithContent(content: string) {
-    if (!content.trim()) return;
-    // Clear the input before sending to immediately give feedback.
-    setInput("");
-    await append({
+    console.log(`sendMessageWithContent(content) `)
+    console.log(`content: ${content} `)
+    if (!content.trim()) return; // What does !content.trim() mean?
+
+    const messagePayload: ChatMessage = {
+      id: String(Date.now()),
       role: "user",
       content,
       timestamp: new Date().toISOString(),
-    } as ChatMessage);
+    };
+
+    console.debug("Sending message payload to /api/chat: (messagePayload):");
+    console.log(messagePayload);
+
+    await append(messagePayload);
   }
 
   // When a prompt is clicked, that message and hide suggestions.
   const onPromptClick = (promptContent: string) => {
+    console.log(`onPromptClick() `)
     sendMessageWithContent(promptContent);
     setShowSuggestions(false);
   };
