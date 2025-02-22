@@ -20,7 +20,6 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ msg }) => {
     console.error("Error parsing message content", error);
     content = "An error occurred while parsing the message content";
   }
-  const formattedContent = content.replace(/\n/g, "<br />");
 
   const relativeTime = msg.timestamp ? getTimeAgo(msg.timestamp) : "";
 

@@ -2,33 +2,43 @@ import type { Message } from "@ai-sdk/react";
 import { formatDistanceToNow } from "date-fns";
 
 /**
- * Parses a string containing SSE (Server-Sent Event) formatted data and returns
- * a human-readable string by concatenating the data payloads, even if there are multiple 'data:' in one line.
+ * Parses a string containing SSE formatted data and returns a human-readable string.
+ * If the text after "data:" is valid JSON with a "content" field, it extracts that field.
+ * Otherwise, it treats the remainder as plain text.
  *
  * @param {string} sseText - The raw SSE text input containing one or more SSE events.
- * @returns {string} A human-readable string formed by concatenating the data payloads from the SSE events.
+ * @returns {string} The concatenated content from all SSE events.
  */
 export function parseSseData(sseText: string): string {
+  console.log("sseText:", sseText);
   if (typeof sseText !== "string") {
     throw new Error("Input must be a string");
   }
 
-  // Split by newline and then by 'data:' within each line
-  const dataLines = sseText
-    .split("\n")
-    .flatMap((line) => {
-      // Only process lines starting with 'data:'
-      if (line.trim().startsWith("data:")) {
-        return line.split(/data:\s*/).filter((part) => part.trim() !== "");
-      }
-      return []; // Return empty array for lines not starting with 'data:'
-    })
-    .map((part) => part.trim())
-    // Remove any empty strings that might result from multiple 'data:' without content
-    .filter(Boolean);
+  // Split the text by newlines and filter only lines that start with "data:"
+  const dataLines = sseText.split("\n").filter((line) => line.startsWith("data:"));
 
-  // Join all parts into a single string
-  return dataLines.join(" ");
+  const contentParts = dataLines.map((line) => {
+    // Remove the "data:" prefix and trim whitespace
+    const rawContent = line.replace(/^data:\s*/, "").trim();
+    
+    // If the raw content looks like JSON (starts with "{" or "["), try to parse it.
+    if (rawContent.startsWith("{") || rawContent.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(rawContent);
+        return parsed.content || "";
+      } catch (err) {
+        console.error("Error parsing SSE chunk as JSON:", err);
+        return "";
+      }
+    } else {
+      // Otherwise, return the raw text.
+      return rawContent;
+    }
+  });
+
+  // Join the content parts with a space
+  return contentParts.join(" ");
 }
 
 /**
