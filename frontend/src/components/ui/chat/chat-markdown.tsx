@@ -90,5 +90,6 @@ const markdownOptions = {
  * @returns {JSX.Element} A React element that renders the formatted markdown.
  */
 export const ChatMarkdown: React.FC<{ content: string }> = ({ content }) => {
+  console.log(`<ChatMarkdown> content: ${content}`);
   return <Markdown options={markdownOptions}>{content}</Markdown>;
 };

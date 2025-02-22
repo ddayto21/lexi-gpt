@@ -102,6 +102,66 @@ This guide walks you through the steps to set up both the frontend and backend d
 - Yarn
 - Docker Desktop
 
+---
+
+## Integration Tests
+
+### Playwright
+
+This guide will walk you through the process of setting up Playwright for integration testing in your CRA TypeScript project, targeting both your frontend and API server. We'll use **Yarn** for dependency management.
+
+#### 1. Install Playwright and Its Dependencies
+
+Add playwright as a development dependency:
+
+```bash
+yarn add --dev @playwright/test
+```
+
+#### Install browser binaries
+
+This command downloads the necessary browser binaries (Chromium, Firefox, WebKit) required for testing.
+
+```bash
+npx playwright install
+```
+
+#### 2.Configure Playwright
+
+Create a file named `playwright.config.ts` in the root of your project and add the following configuration:
+
+```typescript
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests", // Directory where your tests will live
+  timeout: 30000, // Global timeout for each test in milliseconds
+  expect: {
+    timeout: 5000, // Timeout for expect assertions
+  },
+  use: {
+    // Set a base URL for your tests (adjust as needed)
+    baseURL: "http://localhost:3000",
+    // Capture screenshots on test failure
+    screenshot: "only-on-failure",
+  },
+  projects: [
+    {
+      name: "Chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "Firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "WebKit",
+      use: { ...devices["Desktop Safari"] },
+    },
+  ],
+});
+```
+
 ### Frontend Setup
 
 The frontend application is built with React. Follow these steps to launch the development server:
