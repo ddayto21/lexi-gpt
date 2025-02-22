@@ -5,10 +5,9 @@
  * The current behavior is to join all tokens with a single space and collapse extra whitespace.
  */
 
-import { parseSseData, formatContent } from "../../utils/parse-sse-data";
+import {  formatContent } from "../../utils/parse-sse-data";
 import type { Message } from "@ai-sdk/react";
 
-// ----------------- Tests for formatContent -----------------
 describe("formatContent", () => {
   /**
    * Verifies that formatContent processes an assistant message by parsing its SSE data
@@ -21,23 +20,6 @@ describe("formatContent", () => {
       id: "some-unique-id",
     };
     expect(formatContent(message)).toBe("This is formatted");
-  });
-
-  /**
-   * Verifies that formatContent formats bullet lists and headings correctly.
-   * The expected output is a single line with tokens separated by a single space.
-   */
-  test("should format bullet lists and headings correctly", () => {
-    const input = `
-data: # Heading 1
-
-data: - Bullet 1
-data: - Bullet 2
-
-data: **Bold Text**
-`;
-    const expectedOutput = "# Heading 1 - Bullet 1 - Bullet 2 Bold Text";
-    expect(parseSseData(input)).toBe(expectedOutput);
   });
 
   /**

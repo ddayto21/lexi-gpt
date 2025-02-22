@@ -25,7 +25,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, status }) => {
           </div>
           <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl px-4 py-3 rounded-2xl shadow bg-neutral-800 rounded-bl-none">
             <div className="text-sm leading-snug whitespace-pre-wrap animate-pulse text-gray-100">
-              Assistant is thinking...
+              Thinking...
             </div>
           </div>
         </div>

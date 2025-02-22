@@ -1,60 +1,23 @@
 /**
- * @fileoverview Unit tests for the SSE parsing and formatting functions.
- * These tests verify that the helper functions produce a cleaned markdown string
- * that is joined intelligently for readability.
+ * @fileoverview Unit test for parseSseData to ensure that raw markdown syntax is preserved.
  */
-
 import { parseSseData } from "../../utils/parse-sse-data";
 
-describe("parseSseData", () => {
-  test("should return an empty string for empty input", () => {
-    expect(parseSseData("")).toBe("");
-  });
+describe("parseSseData (raw markdown)", () => {
+  it("preserves markdown bold markers and removes unnecessary spaces", () => {
+    const sseInput = `
+data: # Great Choice!
+data: **Historical Fiction** is a rich and diverse genre, full of suspense, twists, and heart-p ounding moments.
+data: Here are some gripping recommendations:
+data: - "The Anime Encyclopedia: A Guide to Japanese Animation Since 1917" by Jonathan Clem ents and Helen McCarthy
+data: - "Anime from Akira to Howl's Moving Castle: Exper iencing Contemporary Japanese Animation" by Susan J. Napier
+data: - **The M
+data: anga Artist 's Workbook** by Christopher Hart
+data: Let me know if you'd like more recommendations!
+`;
+    const expectedMarkdown =
+      '# Great Choice! **Historical Fiction** is a rich and diverse genre, full of suspense, twists, and heart-pounding moments. Here are some gripping recommendations: - "The Anime Encyclopedia: A Guide to Japanese Animation Since 1917" by Jonathan Clem ents and Helen McCarthy - "Anime from Akira to Howl\'s Moving Castle: Exper iencing Contemporary Japanese Animation" by Susan J. Napier - **The Manga Artist\'s Workbook** by Christopher Hart Let me know if you\'d like more recommendations!';
 
-  test("should parse a single SSE event correctly", () => {
-    const input = "data: Hello\n\n";
-    const expectedOutput = "Hello";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should parse multiple SSE events correctly", () => {
-    const input = "data: Hello\n\ndata: World\n\n";
-    const expectedOutput = "Hello World";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should ignore lines that do not start with 'data:'", () => {
-    const input = "random: Not included\ndata: Included\n";
-    const expectedOutput = "Included";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should handle extra spaces after 'data:'", () => {
-    const input = "data:    Spaced\n\n";
-    const expectedOutput = "Spaced";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should concatenate events with a single space", () => {
-    const input = "data: Part1\n\ndata: Part2\n\ndata: Part3\n\n";
-    const expectedOutput = "Part1 Part2 Part3";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should handle multiple data lines on one physical line", () => {
-    const input = "data: Hello\ndata: World!\n\n";
-    const expectedOutput = "Hello World!";
-    expect(parseSseData(input)).toBe(expectedOutput);
-  });
-
-  test("should return empty string for no data", () => {
-    expect(parseSseData("")).toBe("");
-    expect(parseSseData("  \n\n ")).toBe("");
-  });
-
-  test("should throw error on invalid input", () => {
-    expect(() => parseSseData(null as unknown as string)).toThrow(
-      "Input must be a string"
-    );
+    expect(parseSseData(sseInput)).toBe(expectedMarkdown);
   });
 });

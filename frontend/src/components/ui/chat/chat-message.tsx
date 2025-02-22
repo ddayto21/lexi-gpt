@@ -1,9 +1,8 @@
 import React, { useMemo } from "react";
 import type { Message } from "@ai-sdk/react";
-import { AiAvatar } from "@components/ui/avatars/ai-avatar";
-import { formatContent, getTimeAgo } from "@utils/parse-sse-data";
-import { ChatMarkdown } from "@components/ui/chat/chat-markdown";
-
+import { AiAvatar } from "../avatars/ai-avatar";
+import { formatContent, getTimeAgo } from "../../../utils/parse-sse-data"
+import { ChatMarkdown } from "./chat-markdown"
 export interface ChatMessage extends Message {
   timestamp?: string;
 }
