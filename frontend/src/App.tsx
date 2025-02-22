@@ -60,7 +60,8 @@ export default function App() {
      */
 
     onFinish: (message) => {
-      console.log("Raw message content:", message.content);
+      console.log("onFinish() ");
+      console.log("Finished streaming message:", message);
       const formattedMessage = parseSseData(message.content);
       console.log("Finished streaming message:", formattedMessage);
       setShowSuggestions(true);

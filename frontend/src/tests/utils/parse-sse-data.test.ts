@@ -46,15 +46,31 @@ describe("parseSseData", () => {
   });
 
   it("should throw error on invalid input", () => {
-    expect(() => parseSseData(null as unknown as string)).toThrow("Input must be a string");
+    expect(() => parseSseData(null as unknown as string)).toThrow(
+      "Input must be a string"
+    );
   });
 
   it("formatContent works with assistant messages", () => {
     const message: Message = {
       role: "assistant",
       content: "data: This is formatted\n",
-      id: "some-unique-id"
+      id: "some-unique-id",
     };
     expect(formatContent(message)).toBe("This is formatted");
+  });
+
+  it("should format bullet lists and headings correctly", () => {
+    const input = `
+  data: # Heading 1
+  
+  data: - Bullet 1
+  data: - Bullet 2
+  
+  data: **Bold Text**
+  `;
+    // Adjust the expected output based on your formatting rules.
+    const expectedOutput = "# Heading 1 - Bullet 1 - Bullet 2 Bold Text";
+    expect(parseSseData(input)).toBe(expectedOutput);
   });
 });

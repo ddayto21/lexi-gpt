@@ -1,28 +1,32 @@
 import type { Message } from "@ai-sdk/react";
 import { formatDistanceToNow } from "date-fns";
 
+
 /**
- * Parses a string containing SSE formatted data and returns a human-readable string.
- * If the text after "data:" is valid JSON with a "content" field, it extracts that field.
- * Otherwise, it treats the remainder as plain text.
+ * Parses a string containing SSE formatted data and returns a cleaned, human-readable string.
+ * This version extracts text from each SSE event (either plain text or JSON with a "content" field),
+ * then removes markdown formatting and applies additional formatting to remove extra spaces around
+ * special characters such as punctuation, hyphens, and quotes.
  *
  * @param {string} sseText - The raw SSE text input containing one or more SSE events.
- * @returns {string} The concatenated content from all SSE events.
+ * @returns {string} The cleaned and concatenated content from all SSE events.
  */
 export function parseSseData(sseText: string): string {
-  console.log("sseText:", sseText);
+
   if (typeof sseText !== "string") {
     throw new Error("Input must be a string");
   }
 
-  // Split the text by newlines and filter only lines that start with "data:"
-  const dataLines = sseText.split("\n").filter((line) => line.startsWith("data:"));
+  // Split the input into lines, trim each line, and keep only lines that start with "data:"
+  const dataLines = sseText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"));
 
+  // Extract the content from each data line. If the content is JSON, extract the 'content' field;
+  // otherwise, use the plain text.
   const contentParts = dataLines.map((line) => {
-    // Remove the "data:" prefix and trim whitespace
     const rawContent = line.replace(/^data:\s*/, "").trim();
-    
-    // If the raw content looks like JSON (starts with "{" or "["), try to parse it.
     if (rawContent.startsWith("{") || rawContent.startsWith("[")) {
       try {
         const parsed = JSON.parse(rawContent);
@@ -32,13 +36,26 @@ export function parseSseData(sseText: string): string {
         return "";
       }
     } else {
-      // Otherwise, return the raw text.
       return rawContent;
     }
   });
 
-  // Join the content parts with a space
-  return contentParts.join(" ");
+  // Join all parts together with a single space and normalize whitespace
+  let result = contentParts.join(" ").replace(/\s+/g, " ").trim();
+
+  // Remove markdown bold markers (i.e. "**") while preserving other markdown characters.
+  result = result.replace(/\*\*/g, "");
+
+  // Additional formatting to clean up spacing:
+  // Remove extra spaces before punctuation marks like !, ., ,, ?, :, and ;
+  result = result.replace(/\s+([,.!?;:])/g, "$1");
+  // Ensure there is exactly one space after punctuation marks if not end-of-line.
+  result = result.replace(/([,.!?;:])(?=[^\s])/g, "$1 ");
+  // Remove extra spaces around quotes.
+  result = result.replace(/"\s+/g, '"');
+  result = result.replace(/\s+"/g, '"');
+
+  return result;
 }
 
 /**
