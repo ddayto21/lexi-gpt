@@ -42,15 +42,17 @@
 3. [Tech Stack](#tech-stack)
    - [Frontend](#frontend)
    - [Backend](#backend)
-4. [Backend Deployment](#backend-deployment)
+4. [RAG System](#rag-system)
+   - [Data Collection](#data-collection)
+   - [Preprocessing](#preprocessing)
+   - [Embedding Generation](#embedding-generation)
+   - [LLM Integration](#llm-integration)
+5. [Backend Deployment](#backend-deployment)
    - [Set Up IAM Credentials](#step-1-set-up-iam-credentials)
    - [Build and Push Docker Image to ECR](#step-2-build-and-push-docker-image-to-ecr)
    - [Deploy the Service to AWS ECS](#step-3-deploy-the-service-to-aws-ecs)
    - [Updating the ECS Service](#step-4-updating-the-ecs-service)
-5. [Frontend Deployment](#frontend-deployment)
-   - [Build the Application](#step-1-build-the-application)
-   - [Configure AWS Amplify](#step-2-configure-aws-amplify)
-   - [Deploy the Application](#step-3-deploy-the-application)
+6. [Frontend Deployment](#frontend-deployment)
 
 ---
 
@@ -91,6 +93,195 @@ LexiGPT follows a **client-server architecture** for **scalability and performan
   - **Caching for Performance** → Stores frequent queries to reduce API calls and improve speed.
 
 ---
+
+## Setting up the Development Environment
+
+This guide walks you through the steps to set up both the frontend and backend development environments. Before you begin, ensure you have the following prerequisites installed:
+
+- Node.js
+- Yarn
+- Docker Desktop
+
+---
+
+## Integration Tests
+
+### Playwright
+
+This guide will walk you through the process of setting up Playwright for integration testing in your CRA TypeScript project, targeting both your frontend and API server. We'll use **Yarn** for dependency management.
+
+#### 1. Install Playwright and Its Dependencies
+
+Add playwright as a development dependency:
+
+```bash
+yarn add --dev @playwright/test
+```
+
+#### Install browser binaries
+
+This command downloads the necessary browser binaries (Chromium, Firefox, WebKit) required for testing.
+
+```bash
+npx playwright install
+```
+
+#### 2.Configure Playwright
+
+Create a file named `playwright.config.ts` in the root of your project and add the following configuration:
+
+```typescript
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests", // Directory where your tests will live
+  timeout: 30000, // Global timeout for each test in milliseconds
+  expect: {
+    timeout: 5000, // Timeout for expect assertions
+  },
+  use: {
+    // Set a base URL for your tests (adjust as needed)
+    baseURL: "http://localhost:3000",
+    // Capture screenshots on test failure
+    screenshot: "only-on-failure",
+  },
+  projects: [
+    {
+      name: "Chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "Firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "WebKit",
+      use: { ...devices["Desktop Safari"] },
+    },
+  ],
+});
+```
+
+### Frontend Setup
+
+The frontend application is built with React. Follow these steps to launch the development server:
+
+#### 1. Navigate to the /frontend directory
+
+Open your terminal and change your current directory to the `/frontend` directory:
+
+```bash
+cd frontend
+```
+
+#### 2. Run the development server
+
+Run the following command to start the development server:
+
+```bash
+yarn run start
+```
+
+- This command launches the React development server.
+
+- You should see logs indicating that the server is running, and the application will typically open in your default browser.
+
+---
+
+### Backend Setup
+
+The backend is powered by `FastAPI` and uses `Redis` for caching/session management. `Docker Compose` is used to build and run the services.
+
+#### 1. Navigate to the Backend Directory
+
+Open your terminal and change your current directory to the `/backend` directory:
+
+```bash
+cd backend
+```
+
+#### 2. Spin Up the Backend Services
+
+Run the following command to build and launch all the backend services:
+
+```bash
+docker compose up --build
+```
+
+This command performs the following:
+
+What this command does:
+
+- Builds Docker Images: It builds the Docker images for each service defined in the docker-compose.yml file using the respective Dockerfiles.
+- Starts Containers: It launches the containers for:
+  - API Service: Runs the FastAPI application, which depends on Redis for caching and session storage. The API is bound to 127.0.0.1 on port 8000 for local access.
+  - Redis Service: Uses the lightweight redis:alpine image with a custom configuration file and a persistent volume (redis_data) for storing data. It also includes a health check to ensure Redis is running correctly.
+
+---
+
+## RAG System
+
+The RAG system enhances LLM responses by incorporating external knowledge through a multi-step process:
+
+### Data Collection
+
+- **Objective:** Gather book metadata via OpenLibrary’s API.
+- **Method:**
+  1. **Extract Subjects:**
+     ```python
+     def extract_subjects(url="https://openlibrary.org/subjects") -> List[str]:
+         # Code to parse HTML and extract subjects...
+     ```
+  2. **Collect Books per Subject:**
+     ```python
+     def fetch_books_by_subject(subject: str, limit=100) -> List[Dict[str, Any]]:
+         # Code to query the API and structure metadata...
+     ```
+- **Output:** A JSON file containing subjects and book lists.
+
+### Preprocessing
+
+- **Objective:** Normalize and structure text for better semantic search.
+- **Method:**
+  - **Text Normalization:** Convert text to lowercase, remove special characters, tokenize, and lemmatize.
+    ```python
+    def normalize_text(text: str) -> str:
+        # Code to clean and lemmatize text...
+    ```
+  - **Metadata Formatting:** Standardize titles, authors, and subjects.
+- **Output:** Cleaned and structured data ready for embedding.
+
+### Embedding Generation
+
+- **Objective:** Transform textual metadata into vector embeddings for similarity searches.
+- **Method:**
+  1. **Format for Embedding:**
+
+```python
+def format_book_for_embedding(book: dict) -> str:
+    return f"Title: {book.get('title', '')}. Author: {book.get('author', '')}. Subjects: {book.get('subjects', '')}. Year: {book.get('year', '')}."
+```
+
+2. **Create Embeddings:**
+
+```python
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding = model.encode(["Example text for embedding"])
+```
+
+- **Output:** A JSON file containing vector embeddings for each book.
+
+### LLM Integration
+
+- **Objective:** Use LLMs to refine and enhance retrieved book data.
+- **Method:**
+  1. **Query Processing:** Transform user queries into embeddings.
+  2. **Retrieve and Rank:** Use cosine similarity to identify top-k matching books.
+  3. **Generate Enhanced Responses:** Leverage OpenAI or DeepSeek to produce detailed recommendations.
+- **Output:** Final, enriched recommendations delivered to the user.
+
+For more detailed insight, read the full [Medium article](#).
 
 ---
 

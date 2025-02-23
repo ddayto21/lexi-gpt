@@ -18,8 +18,8 @@ export interface SearchResponse {
  * Represents a single message in the conversation log
  */
 export interface Message {
-  role: string; // "user" | "assistant" | "system"
-  content: string;
+  role?: "user" | "assistant" | "system";  // "user" | "assistant" | "system"
+  content?: string | number; 
   parts?: { type: string; text: string }[];
 }
 

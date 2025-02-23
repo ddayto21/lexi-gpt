@@ -9,29 +9,38 @@ interface ChatInputProps {
   status: string; // "ready" | "submitted" | "error" etc.
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({
-  input,
-  onInputChange,
-  onSend,
-  status,
-}) => {
+/**
+ * `ChatInput` is a memoized React functional component that renders a chat input field and a send button.
+ * 
+ * @param {Object} props - The properties object.
+ * @param {string} props.input - The current value of the input field.
+ * @param {function} props.onInputChange - The function to call when the input value changes.
+ * @param {function} props.onSend - The function to call when the send button is clicked or Enter key is pressed.
+ * @param {string} props.status - The current status of the chat input, which can be "submitted" or "streaming".
+ * 
+ * @returns {JSX.Element} The rendered chat input component.
+ */
+export const ChatInput = React.memo(({ input, onInputChange, onSend, status }: ChatInputProps) => {
+  ChatInput.displayName = "ChatInput";
+
   const isSending = status === "submitted" || status === "streaming";
   const hasInput = input.trim() !== "";
 
   return (
-    <footer className="flex items-center p-4 bg-neutral-900 border-t border-neutral-800">
+    <footer className="flex items-center p-4 bg-black border-t border-gray-800">
       <input
         className="
-          flex-1
-          px-4 py-2
-          rounded-full
-          bg-neutral-800 text-gray-100
-          placeholder-gray-500
-          border border-neutral-700
-          focus:outline-none
-          mr-2
-        "
-        placeholder="Describe a book you are looking for..."
+        flex-1
+        px-4 py-2
+        rounded-full
+        bg-gray-800 text-gray-100
+        placeholder-gray-500
+        border border-gray-700
+        focus:outline-none
+        mr-2
+        transition-colors duration-300
+      "
+        placeholder="Type a message..."
         value={input}
         onChange={onInputChange}
         onKeyDown={(e) => {
@@ -41,30 +50,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }
         }}
       />
-
-      {/* 
-        Only render the button if there's user input.
-        If the user is sending, show disabled styling and a pause icon.
-      */}
       {hasInput && (
         <button
           onClick={onSend}
-          disabled={isSending}
+          disabled={isSending || !hasInput}
           className={`
-            flex items-center justify-center
-            w-10 h-10
-            rounded-full
-            transition-colors
-            ${
-              isSending
-                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 text-white"
-            }
-          `}
+          flex items-center justify-center
+          w-10 h-10
+          rounded-full
+          transition-colors duration-300
+          ${
+            !hasInput || isSending
+              ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }
+        `}
         >
           {isSending ? <PauseIcon /> : <SendIcon />}
         </button>
       )}
     </footer>
   );
-};
+});
