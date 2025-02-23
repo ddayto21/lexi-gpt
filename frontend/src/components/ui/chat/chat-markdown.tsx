@@ -1,5 +1,6 @@
 import React, { ElementType } from "react";
 import Markdown from "markdown-to-jsx";
+import { nonBlockingLog } from "@utils/logger";
 
 /**
  * Options for rendering markdown content using markdown-to-jsx.
@@ -90,6 +91,7 @@ const markdownOptions = {
  * @returns {JSX.Element} A React element that renders the formatted markdown.
  */
 export const ChatMarkdown: React.FC<{ content: string }> = ({ content }) => {
+  nonBlockingLog("📝 ChatMarkdown → Rendering markdown content:", content);
   // Convert single newlines to "  \n" (two spaces before the newline).
   // This tells Markdown that each single newline is a line break.
   const forceLineBreaks = content.replace(/\n/g, "  \n");

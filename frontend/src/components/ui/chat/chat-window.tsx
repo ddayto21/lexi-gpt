@@ -1,21 +1,24 @@
 import React from "react";
-
 import { ChatMessageComponent } from "@components/ui/chat/chat-message";
-import type { ChatMessage } from "@components/ui/chat/chat-message";
+import { nonBlockingLog } from "@utils/logger";
+
+import { Message } from "@ai-sdk/ui-utils";
 
 interface ChatWindowProps {
-  messages: ChatMessage[];
+  messages: Message[];
   status: string;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, status }) => {
-  const filteredMessages = messages.filter((msg) => msg.role !== "system");
+  const filteredMessages = messages.filter((msg) => msg.role === "user" || msg.role === "assistant");
+  nonBlockingLog("📝 <ChatWindow> component rendered");
 
   return (
     <main className="flex-1 overflow-auto p-4 space-y-4 bg-black">
-      {filteredMessages.map((msg, i) => (
-        <ChatMessageComponent key={i} msg={msg} />
+      {filteredMessages.map((message, index) => (
+        <ChatMessageComponent key={index} msg={message} />
       ))}
+
       {status === "submitted" && (
         <div className="flex items-start justify-start">
           <div className="mr-2 flex-none">

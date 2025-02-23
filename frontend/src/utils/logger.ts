@@ -1,70 +1,81 @@
 /**
- * A utility class for logging messages and errors.
+ * A utility class for logging messages and errors in a structured and readable format.
  *
- * This logger automatically logs messages to the console and sends them
- * to a remote logging server (`http://localhost:4000/log`) for persistent storage.
+ * This logger:
+ * - Outputs logs with proper indentation and colors for readability.
+ * - Sends logs to a remote server (`http://localhost:4000/log`) for persistent storage.
+ * - Groups logs to avoid cluttering the console.
  *
  * Usage:
- * - `Logger.log("Some message")`
- * - `Logger.error("Something went wrong", errorObject)`
+ * - `Logger.log("User logged in", { userId: 123 })`
+ * - `Logger.error("API request failed", errorObject)`
  *
  * @class
  */
-class Logger {
+export class Logger {
   /**
-   * Logs a message with an optional data object.
-   *
-   * This method:
-   * - Adds a timestamp to the log.
-   * - Outputs the log to the console.
-   * - Sends the log entry to a remote logging server.
+   * Logs a message with optional metadata in a structured, readable format.
    *
    * @static
-   * @param {string} message - The log message to record.
-   * @param {unknown} [data=null] - Optional additional data to include in the log.
+   * @param {string} message - The log message.
+   * @param {unknown} [data=null] - Optional metadata or context for the log.
    */
   static log(message: string, data: unknown = null) {
-    const logEntry = `[LOG] ${new Date().toISOString()} - ${message}`;
-    console.log(logEntry, data);
-    Logger.sendToServer(logEntry, data);
+    const timestamp = new Date().toISOString();
+
+    console.groupCollapsed(`📜 %c[LOG] ${timestamp}`, "color: green; font-weight: bold");
+    console.log(`🔹 Message: %c${message}`, "color: #3498db; font-weight: bold;");
+    if (data) {
+      console.log("🔍 Data:", data);
+    }
+    console.groupEnd();
+
+    Logger.sendToServer("LOG", message, data);
   }
 
   /**
-   * Logs an error message with an optional error object.
-   *
-   * This method:
-   * - Formats the log with an `[ERROR]` tag and timestamp.
-   * - Outputs the error to the console.
-   * - Sends the error log to the remote logging server.
+   * Logs an error message with optional error details.
    *
    * @static
-   * @param {string} message - The error message to record.
-   * @param {unknown} [error=null] - Optional error object to include in the log.
+   * @param {string} message - The error message.
+   * @param {unknown} [error=null] - Optional error details.
    */
   static error(message: string, error: unknown = null) {
-    const logEntry = `[ERROR] ${new Date().toISOString()} - ${message}`;
-    console.error(logEntry, error);
-    Logger.sendToServer(logEntry, error);
+    const timestamp = new Date().toISOString();
+
+    console.groupCollapsed(`❌ %c[ERROR] ${timestamp}`, "color: red; font-weight: bold");
+    console.log(`🔺 Error: %c${message}`, "color: #e74c3c; font-weight: bold;");
+    if (error) {
+      console.error("🛑 Details:", error);
+    }
+    console.groupEnd();
+
+    Logger.sendToServer("ERROR", message, error);
   }
 
   /**
    * Sends the log entry to a remote logging server.
    *
-   * This method is called internally by `log()` and `error()` to persist logs.
-   * If the request fails, an error is logged to the console.
+   * This method is called internally by `log()` and `error()`
+   * to persist logs remotely for debugging.
    *
    * @private
    * @static
-   * @param {string} message - The log or error message being sent.
-   * @param {unknown} data - The additional data associated with the log.
+   * @param {string} level - The log level (LOG, ERROR).
+   * @param {string} message - The log message.
+   * @param {unknown} data - Additional metadata for the log.
    */
-  private static sendToServer(message: string, data: unknown) {
+  private static sendToServer(level: string, message: string, data: unknown) {
     fetch("http://localhost:4000/log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, data }),
-    }).catch((err) => console.error("Logging failed", err));
+      body: JSON.stringify({ level, message, data, timestamp: new Date().toISOString() }),
+    }).catch((err) => console.error("🚨 Logging failed:", err));
   }
 }
 
-export default Logger;
+export const nonBlockingLog = (message: string, data?: unknown) => {
+  setTimeout(() => {
+    Logger.log(message, data);
+  }, 0)
+}

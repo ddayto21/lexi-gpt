@@ -1,20 +1,30 @@
 import express from "express";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import path from "path";
 
+import cors from "cors";
+
 const app = express();
+
+app.use(express.json({ limit: "10mb" })); // ⬅️ Increase the limit (adjust as needed)
+app.use(express.urlencoded({ extended: true, limit: "10mb" })); // ⬅️ Handle large form submissions
+
+app.use(cors());
 
 /**
  * Path to the log file where incoming logs will be stored.
  * The log file is named `dev.log` and is located in the server's directory.
  * @constant {string}
  */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const LOG_FILE = path.join(__dirname, "dev.log");
-
+console.log(`Logging to: ${LOG_FILE}`);
 /**
  * Middleware to parse incoming JSON request bodies.
  */
-app.use(express.json());
+
 
 /**
  * Endpoint to receive log messages from clients (e.g., frontend applications).
