@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from app.schemas.chat import ChatRequest, ChatMessage, ChatPart
 import asyncio
+from app.services.auth import verify_token
+from fastapi import Depends
+from app.models.user import User
 
 load_dotenv()
 
@@ -66,3 +69,9 @@ async def chat(req: ChatRequest):
 
     response_messages = generator()
     return StreamingResponse(response_messages, media_type="text/event-stream")
+
+
+@router.get("/chat/messages")
+async def get_messages(user=Depends(verify_token)):
+    """Fetches messages for the authenticated user."""
+    return {"messages": ["Message 1", "Message 2"], "user": user["email"]}

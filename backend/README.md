@@ -63,3 +63,11 @@ The backend should now be running. You can test it by visiting:
 ```bash
 http://localhost:8000/docs
 ```
+
+## OAuth FLow
+
+- Create new project in google cloud platform
+- Enable Google+ APi
+- Create OAuth Client ID
+- Web Application
+- Set callback url ('/auth/callback')
