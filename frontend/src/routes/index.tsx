@@ -20,9 +20,10 @@ export function AppRoutes() {
         <Route
           path="/chat"
           element={
-            // <ProtectedRoute>
-            <ChatPage />
-            // </ProtectedRoute>
+            <ProtectedRoute>
+              <ChatPage />
+
+            </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" />} />{" "}

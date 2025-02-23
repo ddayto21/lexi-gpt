@@ -15,6 +15,9 @@ REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
 
 def exchange_code_for_token(code: str):
     """Exchanges authorization code for access token"""
+    if not REDIRECT_URI:
+        raise HTTPException(status_code=500, detail="GOOGLE_REDIRECT_URI is not set")
+
     token_uri = "https://oauth2.googleapis.com/token"
     payload = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -23,10 +26,11 @@ def exchange_code_for_token(code: str):
         "redirect_uri": REDIRECT_URI,
         "grant_type": "authorization_code",
     }
+
     response = requests.post(token_uri, data=payload)
 
     token_data = response.json()
-    if "acces_token" not in token_data:
+    if "access_token" not in token_data:
         raise HTTPException(status_code=401, detail="Failed to retrieve token")
 
     return token_data

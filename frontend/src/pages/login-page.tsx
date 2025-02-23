@@ -12,13 +12,26 @@ if (!process.env.REACT_APP_REDIRECT_URI) {
   throw new Error("REACT_APP_REDIRECT_URI is not set");
 }
 
-const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI;
-
 export function LoginPage() {
   const handleLogin = () => {
-    const authUrl = `${REDIRECT_URI}?client_id=${CLIENT_ID}`;
-    window.location.href = authUrl;
+    const CLIENT_ID =
+      "883959908974-ln47bfa0n46vu4r0tm29kmrjhfqo15ep.apps.googleusercontent.com";
+    const REDIRECT_URI = encodeURIComponent(
+      "http://localhost:8000/auth/callback"
+    );
+    const SCOPE = encodeURIComponent("openid email profile");
+
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?` +
+      `client_id=${CLIENT_ID}` +
+      `&redirect_uri=${REDIRECT_URI}` +
+      `&response_type=code` +
+      `&scope=${SCOPE}` +
+      `&access_type=offline` +
+      `&service=lso&o2v=2&ddm=1&flowName=GeneralOAuthFlow`;
+
+    console.log("Generated Auth URL:", authUrl);
+    window.open(authUrl);
   };
 
   return (
@@ -45,7 +58,7 @@ export function LoginPage() {
           <form className="space-y-6">
             {/* Google Sign-In Button */}
             <button
-              onClick={handleLogin}
+              onClick={() => handleLogin()}
               className="flex items-center justify-center w-full p-3 rounded-full bg-white text-black font-medium text-lg transition hover:bg-gray-200"
             >
               <FcGoogle className="mr-2 text-2xl" />

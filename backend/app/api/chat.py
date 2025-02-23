@@ -14,7 +14,7 @@ from app.schemas.chat import ChatRequest, ChatMessage, ChatPart
 import asyncio
 from app.services.auth import verify_token
 from fastapi import Depends
-from app.models.user import User
+
 
 load_dotenv()
 
