@@ -29,7 +29,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, status }) => {
           ref={index === filteredMessages.length - 1 ? lastMessageRef : null}
         />
       ))}
- {status === "submitted" && (
+      {status === "submitted" && (
         <div className="flex items-start justify-start">
           <div className="mr-2 flex-none">
             <div className="h-8 w-8 flex items-center justify-center bg-neutral-800 rounded-full text-sm font-bold">
