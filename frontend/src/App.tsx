@@ -8,76 +8,34 @@ import { PromptSuggestions } from "@components/ui/chat/prompt-suggestions";
 import { ChatInput } from "@components/ui/chat/chat-input";
 import { StatusBar } from "@components/status-bar";
 import { prompts } from "@data/constants/prompts";
+
+import { chatOptions } from "./config/chat-options";
+
 import { nonBlockingLog } from "@utils/logger";
 
 export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(true);
-
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
   nonBlockingLog("🟢 `useChat` initialized in `App.tsx`");
 
-  /**
-   * @description Configuration for the useChat hook, defining the interaction with the backend API.
-   * This object sets up the connection to the chat completion endpoint, specifies the streaming protocol,
-   * provides initial chat messages, and defines callback functions for handling responses, errors, and the completion of a message.
-   */
+  console.log("🟢 `useChat` initialized in `App.tsx`");
 
   /**
    * ✅ Memoize `options` to prevent `useChat` from reinitializing on every render.
    */
-  const options: UseChatOptions = useMemo(
-    () => ({
-      api: "/api/chat",
-      streamProtocol: "text",
-      initialMessages: [
-        {
-          id: "1",
-          role: "assistant",
-          content: "Hello! I’m here to help you find your next great read.",
-          timestamp: new Date().toISOString(),
-        } as Message,
-      ],
-      sendExtraMessageFields: true,
-      fetch: async (url, options) => {
-        nonBlockingLog("fetch() request", url);
-        nonBlockingLog("Headers", JSON.stringify(options!.headers, null, 2));
-        nonBlockingLog(
-          `Body ${JSON.stringify(
-            JSON.parse(options!.body! as string),
-            null,
-            2
-          )}`
-        );
-        return await fetch(url, options);
-      },
-      onFinish: (message) => {
-        nonBlockingLog("onFinish():");
-        nonBlockingLog("🟢 Message sent:", message);
-        setShowSuggestions(true);
-      },
+  const options = useMemo(() => chatOptions, []); // ✅ Memoize imported options
 
-      onError: (error) => {
-        nonBlockingLog("❌ Chat interaction error:", error);
-        setErrorMessage(error.message || "An unknown error occurred.");
-      },
-
-      onResponse: (response) => {
-        nonBlockingLog("📦 Chat response:", response);
-        setShowSuggestions(false);
-      },
-    }),
-
-    []
-  ); // ✅ Empty dependency array ensures this only initializes once.
-
+  /**
+   * ✅ Use `useChat` with memoized options
+   */
   const {
     messages,
-
+    input,
     status,
-
     append,
-
-    setInput, // ✅ Directly update the input state
+    setInput,
+    handleInputChange,
+    handleSubmit,
   } = useChat(options);
 
   /**
@@ -116,7 +74,12 @@ export default function App() {
         />
       )}
 
-      <ChatInput />
+      <ChatInput
+        input={input}
+        onInputChange={handleInputChange}
+        onSend={handleSubmit}
+        status={status}
+      />
     </div>
   );
 }
