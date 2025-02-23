@@ -1,5 +1,16 @@
+/**
+ * @file App.tsx - Main entry point for the chat application.
+ *
+ * This component:
+ * - Manages chat interactions via the `useChat` hook.
+ * - Displays the conversation (`ChatWindow`).
+ * - Allows users to input messages via `ChatInput`.
+ * - Handles prompt suggestions for quick replies.
+ * - Connects the UI to the FastAPI backend at `/api/chat` via `chatOptions`.
+ */
+
 import React, { useState, useMemo } from "react";
-import { useChat, type Message, type UseChatOptions } from "@ai-sdk/react";
+import { useChat, type Message } from "@ai-sdk/react";
 
 import { Header } from "@components/ui/header";
 
@@ -13,20 +24,49 @@ import { chatOptions } from "./config/chat-options";
 
 import { nonBlockingLog } from "@utils/logger";
 
+/**
+ * The main chat application component.
+ *
+ * - Uses `useChat` to manage messages, input state, and API interactions.
+ * - Displays chat messages, prompt suggestions, and input field.
+ * - Handles UI logic for error states and real-time updates.
+ *
+ * @component
+ * @returns {JSX.Element} The chat application UI.
+ */
+
 export default function App() {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
-  nonBlockingLog("🟢 `useChat` initialized in `App.tsx`");
-
-  console.log("🟢 `useChat` initialized in `App.tsx`");
-
   /**
-   * ✅ Memoize `options` to prevent `useChat` from reinitializing on every render.
+   * Stores any error messages that occur during chat interactions.
+   * Used to display error feedback to users.
+   *
+   * @type {[string | null, React.Dispatch<React.SetStateAction<string | null>>]}
    */
-  const options = useMemo(() => chatOptions, []); // ✅ Memoize imported options
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * Controls the visibility of the prompt suggestions panel.
+   *
+   * When the assistant is actively responding, this panel is hidden.
+   *
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
 
   /**
-   * ✅ Use `useChat` with memoized options
+   * Memoizes the `chatOptions` configuration to prevent unnecessary re-renders.
+   * Ensures that `useChat` does not reinitialize on every render.
+   */
+  const options = useMemo(
+    () => ({
+      ...chatOptions,
+    }),
+    []
+  );
+  /**
+   * Initializes `useChat` to manage chat state and interactions.
+   * Connects to the `/api/chat` endpoint.
+   * Manages real-time streaming of LLM responses.
+   * Handles input changes and message submissions.
    */
   const {
     messages,
@@ -39,7 +79,14 @@ export default function App() {
   } = useChat(options);
 
   /**
-   * Handles prompt suggestions being clicked.
+   * Handles the event when a user selects a prompt suggestion.
+   *
+   * - Sends the selected prompt to the assistant.
+   * - Directly appends the user message without using `handleSubmit`.
+   * - Clears the input field after sending.
+   *
+   * @param {string} promptContent - The selected prompt text.
+   * @returns {Promise<void>}
    */
   const onPromptClick = async (promptContent: string) => {
     if (!promptContent.trim()) return;
@@ -55,8 +102,13 @@ export default function App() {
 
     nonBlockingLog("📦 Sending user prompt:", messagePayload);
 
-    await append(messagePayload); // ✅ Directly appends without using `handleSubmit`
-    setInput(""); // ✅ Clears input after sending
+    try {
+      await append(messagePayload);
+      setInput("");
+    } catch (error) {
+      setErrorMessage("Failed to send prompt. Please try again.");
+      nonBlockingLog("🔴 Error sending user prompt:", error);
+    }
   };
 
   return (

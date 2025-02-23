@@ -32,10 +32,30 @@ client = AsyncOpenAI(api_key=API_KEY, base_url="https://api.deepseek.com/v1")
 
 @router.post("/chat")
 async def chat(req: ChatRequest):
+    system_prompt = ChatMessage(
+        role="system",
+        content=(
+            "You are LexiGPT, a warm and knowledgeable AI librarian. You specialize in book recommendations "
+            "and personalized suggestions. You speak in a conversational and engaging way, occasionally "
+            "using light humor when appropriate. Always make the user feel heard and valued. "
+            "Never be robotic—respond naturally and empathetically."
+        ),
+        timestamp=datetime.utcnow().isoformat(),
+        parts=[
+            ChatPart(
+                type="text",
+                text="Only respond with 3 book recommendations.",
+            )
+        ],
+    )
+
+    # Insert system prompt at the beginning of the conversation history
+    req.messages.insert(0, system_prompt)
+
     stream = await client.chat.completions.create(
         model="deepseek-chat",
         messages=req.messages,
-        max_tokens=300,
+        max_tokens=500,
         temperature=0.3,
         stream=True,
     )

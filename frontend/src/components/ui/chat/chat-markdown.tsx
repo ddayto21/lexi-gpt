@@ -1,6 +1,8 @@
 import React, { ElementType } from "react";
 import Markdown from "markdown-to-jsx";
-import { nonBlockingLog } from "@utils/logger";
+
+import hljs from "highlight.js";
+import "highlight.js/styles/github-dark.css";
 
 /**
  * Options for rendering markdown content using markdown-to-jsx.
@@ -14,72 +16,81 @@ import { nonBlockingLog } from "@utils/logger";
  */
 const markdownOptions = {
   overrides: {
-    // Override rendering for h1 elements (Markdown headings)
     h1: {
       component: "h1" as ElementType,
       props: {
-        className: "text-2xl font-bold mb-4",
+        className: "text-3xl font-bold mb-4 text-white",
       },
     },
-    // Override rendering for h2 elements
     h2: {
       component: "h2" as ElementType,
       props: {
-        className: "text-xl font-bold mb-3",
+        className: "text-2xl font-bold mb-3 text-white",
       },
     },
-    // Override rendering for h3 elements
     h3: {
       component: "h3" as ElementType,
       props: {
-        className: "text-lg font-bold mb-2",
+        className: "text-xl font-bold mb-2 text-white",
       },
     },
-    // Override rendering for unordered lists
     ul: {
       component: "ul" as ElementType,
       props: {
-        className: "list-disc pl-5 mb-2",
+        className: "list-disc pl-6 mb-2 text-gray-300",
       },
     },
-    // Override rendering for ordered lists
     ol: {
       component: "ol" as ElementType,
       props: {
-        className: "list-decimal pl-5 mb-2",
+        className: "list-decimal pl-6 mb-2 text-gray-300",
       },
     },
-    // Override rendering for list items
     li: {
       component: "li" as ElementType,
       props: {
         className: "mb-1",
       },
     },
-    // Override rendering for blockquotes
     blockquote: {
       component: "blockquote" as ElementType,
       props: {
-        className: "border-l-4 pl-4 italic text-gray-600 my-4",
+        className: "border-l-4 pl-4 italic text-gray-400 my-4 text-gray-300",
       },
     },
-    // Override rendering for inline code
     code: {
       component: "code" as ElementType,
       props: {
-        className: "bg-gray-200 rounded px-1 py-0.5",
+        className: "bg-gray-700 rounded px-1 py-0.5 text-gray-100",
       },
     },
-    // Override rendering for code blocks
     pre: {
       component: "pre" as ElementType,
       props: {
         className: "bg-gray-800 text-white p-4 rounded my-2 overflow-x-auto",
       },
+      children: (props: { children: React.ReactNode }) => {
+        const code = Array.isArray(props.children)
+          ? props.children.join("")
+          : props.children;
+        const highlightedCode = hljs.highlightAuto(code as string).value;
+        return <code className="hljs">{highlightedCode}</code>;
+      },
+    },
+    p: {
+      component: "p" as ElementType,
+      props: {
+        className: "mb-2 text-gray-300",
+      },
+    },
+    a: {
+      component: "a" as ElementType,
+      props: {
+        className: "text-blue-400 hover:text-blue-500",
+      },
     },
   },
 };
-
 /**
  * ChatMarkdown component renders markdown content for chat messages.
  *
@@ -91,7 +102,6 @@ const markdownOptions = {
  * @returns {JSX.Element} A React element that renders the formatted markdown.
  */
 export const ChatMarkdown: React.FC<{ content: string }> = ({ content }) => {
-  nonBlockingLog("📝 ChatMarkdown → Rendering markdown content:", content);
   // Convert single newlines to "  \n" (two spaces before the newline).
   // This tells Markdown that each single newline is a line break.
   const forceLineBreaks = content.replace(/\n/g, "  \n");

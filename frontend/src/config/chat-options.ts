@@ -43,7 +43,8 @@ export const chatOptions: UseChatOptions = {
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I’m here to help you find your next great read.",
+      content:
+        "Hey there! 👋 I'm LexiGPT, your friendly librarian. Tell me what you're in the mood for—thrillers, romance, or a hidden gem—and I'll find your next great read! 😊",
       timestamp: new Date().toISOString(),
     } as Message,
   ],
@@ -69,24 +70,7 @@ export const chatOptions: UseChatOptions = {
    * @returns {Promise<Response>} - The API response from FastAPI.
    */
   fetch: async (url, options) => {
-    nonBlockingLog("fetch() request", url);
-    nonBlockingLog("Headers", JSON.stringify(options!.headers, null, 2));
-    nonBlockingLog(
-      `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`
-    );
     return await fetch(url, options);
-  },
-  /**
-   * Handles completion of a chat response from the FastAPI server.
-   *
-   * - This function is triggered **when the assistant finishes responding**.
-   * - Logs the completed message for debugging.
-   *
-   * @param {Message} message - The completed chat message from FastAPI.
-   */
-  onFinish: (message) => {
-    nonBlockingLog("onFinish():");
-    nonBlockingLog("🟢 Message sent:", message);
   },
 
   /**

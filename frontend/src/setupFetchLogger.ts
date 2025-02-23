@@ -38,8 +38,6 @@ window.fetch = async (...args) => {
   const body = options?.body ? JSON.stringify(options.body) : "N/A";
 
   console.log(`Making a ${method} request to ${url}`);
-  console.log(`Request headers: ${JSON.stringify(headers)}`);
-  console.log(`Request body: ${body}`);
 
   /**
    * Calls the original fetch function with the provided arguments.
@@ -50,7 +48,7 @@ window.fetch = async (...args) => {
   const response = await originalFetch(...args);
 
   console.log(`Response from ${method} ${url}  (Status: ${response.status}) `);
-  console.log(response);
+
 
   /** Return the original fetch response to maintain expected behavior */
   return response;
