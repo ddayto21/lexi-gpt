@@ -1,6 +1,20 @@
 # docker-compose.yml
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Prevent conflicts with the node_modules directory in the container
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Resolve file watching issues in certain environments
+    dependes_on:
+      - api
   # ---------------------------------------------------------------------------
   # API Service
   # This service builds and runs the FastAPI application.
@@ -9,7 +23,10 @@ services:
   # The API is bound to localhost (127.0.0.1) to restrict external access.
   # ---------------------------------------------------------------------------
   api:
-    build: . # Build the Docker image using the Dockerfile in the current directory.
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+
     depends_on:
       - redis # Ensure Redis is started before the API.
 
