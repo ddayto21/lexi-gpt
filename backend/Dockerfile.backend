@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # 1) Use a lightweight Python 3.10 base image
-FROM python:3.10-slim AS base
+FROM --platform=linux/amd64 python:3.10-slim
 
 # 2) Set environment variables to optimize pip behavior
 ENV PYTHONUNBUFFERED=1 \
@@ -9,9 +9,13 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 
 
-# 3) Install system dependencies (if needed)
+# 3) Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    gcc \
+    g++ \
+    python3-dev \
+    libffi-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,8 +25,18 @@ WORKDIR /code
 # 5) Copy only dependency files first for Docker caching
 COPY requirements.txt /code/requirements.txt
 
+
+
 # 6) Install dependencies 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+RUN pip install --no-cache-dir cython numpy blis==0.7.9
+
+RUN pip install --no-cache-dir --force-reinstall spacy==3.8.4
+
+
+RUN pip install -r /code/requirements.txt
+
 
 # 7) Copy the rest of the application code
 COPY ./app /code/app
