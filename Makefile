@@ -50,6 +50,16 @@ docker-start: check-env
 		echo "❌ Error: Docker is not running. Please start Docker and try again."; \
 		exit 1; \
 	fi
+	
+	# Determine if the command is being run from the monorepo root
+	@ROOT_DIR="$$(git rev-parse --show-toplevel 2>/dev/null || echo "$$(pwd)")"; \
+	CURRENT_DIR="$$(pwd)"; \
+	if [[ "$$CURRENT_DIR" != "$$ROOT_DIR" ]]; then \
+		echo "📂 Switching to monorepo root at $$ROOT_DIR..."; \
+		cd $$ROOT_DIR; \
+	fi
+
+
 	@echo "🚀 Starting Docker Compose..."
 	docker compose up --build
 
