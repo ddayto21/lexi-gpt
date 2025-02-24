@@ -505,6 +505,7 @@ Attach the following policies to grant the necessary permissions:
 - **IAMFullAccess** – Enables role and permission management.
 - **CloudWatchLogsFullAccess** – Allows access to CloudWatch for ECS logging.
 - **AmazonS3ReadOnlyAccess** – Grants read-only access to S3, useful if storing static assets or configuration.
+- **SecretsManagerReadWrite** - Grant permission to read secrets in AWS Secrets Manager.
 
 ### 1.3 Generate Access Keys
 
@@ -697,7 +698,41 @@ aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service ${ECS_SERVICE_NAM
 
 ---
 
-# Frontend Deployment
+## Environment Configuration
+
+### Set Environment Variables in AWS Secrets Manager
+
+Run the following command to attach the `SecretsManagerReadWrite` AWS Managed Policy to your IAM user:
+
+```bash
+aws iam attach-user-policy \
+  --user-name ${AWS_IAM_USER} \
+  --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite
+```
+
+### Set Environment Variables in AWS Amplify
+
+To set a single environment variable, run:
+
+```bash
+aws amplify update-app \
+    --app-id ${AWS_AMPLIFY_APP_ID} \
+    --environment-variables ${ENV_NAME}=`${VALUE}`
+```
+
+We can also load multiple variables by creating an `env.json` file:
+
+```json
+{
+  "REDIS_PASSWORD": "your-secure-password",
+  "FRONTEND_ORIGIN": "https://yourdomain.com",
+  "API_KEY": "12345abcdef"
+}
+```
+
+---
+
+## Frontend Deployment
 
 This section outlines the steps required to deploy the frontend of the **Book Search Application** using **AWS Amplify**. AWS Amplify automates the deployment process, integrating directly with GitHub for continuous deployment. By following these steps, you can ensure a smooth and efficient deployment process.
 
