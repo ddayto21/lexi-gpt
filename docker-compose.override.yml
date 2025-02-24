@@ -1,0 +1,55 @@
+# docker-compose.override.yml
+# 🔹 Defines the core stack for CI/CD and automated testing.
+# 🔹 No volumes are used to ensure fresh builds and avoid dependency on local files.
+
+services:
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true 
+    depends_on:
+      - api
+
+  api:
+    volumes:
+      - ./backend:/app
+    
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - redis
+    
+    ports:
+      - "127.0.0.1:8000:8000" 
+
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Load Redis password from .env file
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN} # Allow CORS from local frontend host
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-4} # Default to 4 workers
+
+   
+   
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "${UVICORN_WORKERS:-4}" ]
+
+  redis:
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD}" ]
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro # Mount Redis config file (read-only)
+      - redis_data:/data # Ensure persistent storage
+
+volumes:
+  redis_data:
+
+

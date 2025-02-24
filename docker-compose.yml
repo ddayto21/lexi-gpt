@@ -1,6 +1,19 @@
 # docker-compose.yml
+# 🔹 Defines the core stack for testing & CI/CD.
+# 🔹 Used for automated testing (GitHub Actions) and staging environments.
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      target: dev
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
   # ---------------------------------------------------------------------------
   # API Service
   # This service builds and runs the FastAPI application.
@@ -9,7 +22,12 @@ services:
   # The API is bound to localhost (127.0.0.1) to restrict external access.
   # ---------------------------------------------------------------------------
   api:
-    build: . # Build the Docker image using the Dockerfile in the current directory.
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    env_file:
+      - ./backend/.env
+
     depends_on:
       - redis # Ensure Redis is started before the API.
 
@@ -30,10 +48,6 @@ services:
   # ---------------------------------------------------------------------------
   redis:
     image: "redis:alpine"
-
-    volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf # Mount the Redis config file
-      - redis_data:/data # Persistent storage
     ports:
       - "127.0.0.1:6379:6379"
 
@@ -46,12 +60,3 @@ services:
       timeout: 5s
 
     command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
-
-# ---------------------------------------------------------------------------
-# Named Volumes
-# Define volumes to persist data across container restarts.
-# ---------------------------------------------------------------------------
-volumes:
-  redis_data:
-
-
