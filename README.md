@@ -94,7 +94,164 @@ LexiGPT follows a **client-server architecture** for **scalability and performan
 
 ---
 
-## Setting up the Development Environment
+## Environment Variable Configuration Guide
+
+These instructions outlines how `environment variables` are configured and managed across different `environments` for both the `frontend` and `backend` applications. Properly managing environment variables ensures security, scalability, and seamless deployments.
+
+### 1. Development Environment
+
+For local development, `environment variables` are stored in `.env` files. Each service (frontend/backend) loads the required variables from these files to simulate a real production environment.
+
+#### Using .env.example as a Template
+
+Before running the project for the first time, copy the `.env.example` template file to create a local `.env` file:
+
+```bash
+cp .env.example .env.development
+```
+
+This ensures all required environment variables are properly set.
+
+#### Frontend Development (.env.development)
+
+The React application uses `.env.development` to configure local API endpoints and settings.
+
+```plaintext
+REACT_APP_API_BASE_URL=http://localhost:8000
+REACT_APP_ENV=development
+```
+
+We can use `process.env` to access these variables in the application:
+
+```tsx
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+```
+
+#### Backend Development (.env.development)
+
+TThe FastAPI backend loads environment variables using `python-dotenv`.
+
+For example, the `REDIS_PASSWORD` is loaded from the `.env.development` as such:
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv(".env.development")
+
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+if not REDIS_PASSWORD:
+    raise ValueError("Missing required environment variable: REDIS_PASSWORD")
+```
+
+- We add error handling to ensure the application falls gracefully if critical environment variables are missing.
+
+### 1. CI/CD Environment
+
+In CI/CD pipelines, environment variables are not stored in `.env` files. Instead, they are securely stored in `GitHub Secrets`.
+
+#### Storing Environment Variables in GitHub Secrets
+
+We can manage environment variables with secrets:
+
+Secrets are managed in `GitHub Actions` → `Repository Settings` → `Secrets`.
+
+Ensure the following secrets are set before running any CI/CD workflows:
+
+```plaintext
+REDIS_PASSWORD=supersecretpassword
+JWT_SECRET_KEY=supersecurejwtkey
+FRONTEND_ORIGIN=https://staging.yourdomain.com
+```
+
+#### Retrieving Environment Variables in GitHub Actions
+
+`GitHub Actions` automatically injects `secrets` into workflows:
+
+```yaml
+env:
+  REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+```
+
+### 3. Production Environment
+
+In production, environment variables are securely stored in `AWS Secrets Manager` and injected into ECS `Task Definitions`.
+
+#### Storing Secrets in AWS Secrets Manager
+
+AWS allows us to store secrets as key-value pairs.
+
+```bash
+aws secretsmanager create-secret --name REDIS_PASSWORD --secret-string "productionsecret"
+aws secretsmanager create-secret --name JWT_SECRET_KEY --secret-string "productionjwtsecret"
+```
+
+#### Injecting Secrets into AWS ECS Task Definitions
+
+In `AWS ECS`, secrets are injected at runtime through `task definitions`.
+
+```yaml
+environment:
+  - name: REDIS_PASSWORD
+    valueFrom: arn:aws:secretsmanager:us-east-1:123456789012:secret:REDIS_PASSWORD
+  - name: JWT_SECRET_KEY
+    valueFrom: arn:aws:secretsmanager:us-east-1:123456789012:secret:JWT_SECRET_KEY
+```
+
+#### ECS Task Definition Example
+
+Environment variables passed from AWS Secrets Manager to running containers using task definitions.
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "backend-image:latest",
+      "memory": 512,
+      "cpu": 256,
+      "essential": true,
+      "environment": [
+        {
+          "name": "FRONTEND_ORIGIN",
+          "value": "https://yourdomain.com"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "REDIS_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:REDIS_PASSWORD"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:JWT_SECRET_KEY"
+        }
+      ]
+    }
+  ]
+}
+```
+
+1. `AWS ECS` reads `secrets` from `AWS Secrets Manager`.
+2. The container loads `environment variables` from those `secrets`.
+3. The backend can access these variables using `os.getenv()`.
+
+### 4. Handling Missing Environment Variables
+
+If a required environment variable is missing, the application is designed to fail gracefully with an error message.
+
+#### Example: Error Handling in FastAPI
+
+```python
+import os
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise ValueError("Missing required environment variable: JWT_SECRET_KEY")
+```
+
+## Setup Development Environment
 
 This guide walks you through the steps to set up both the frontend and backend development environments. Before you begin, ensure you have the following prerequisites installed:
 
@@ -216,6 +373,34 @@ What this command does:
 - Starts Containers: It launches the containers for:
   - API Service: Runs the FastAPI application, which depends on Redis for caching and session storage. The API is bound to 127.0.0.1 on port 8000 for local access.
   - Redis Service: Uses the lightweight redis:alpine image with a custom configuration file and a persistent volume (redis_data) for storing data. It also includes a health check to ensure Redis is running correctly.
+
+---
+
+## Getting Started
+
+### 1. Setup Development Environment
+
+We can set up our development environment by running:
+
+```bash
+docker compose up --build
+```
+
+This command will spin up the following services:
+
+- Web Interface (React Application)
+- REST API (Python)
+- Caching Server (Redis)
+
+### 2.Run Automated Tests in Docker
+
+Then, run automated tests in docker with the command:
+
+```bash
+docker compose -f docker-compose.test.yml up --build
+```
+
+- This will run all our tests inside a controlled environment.
 
 ---
 
