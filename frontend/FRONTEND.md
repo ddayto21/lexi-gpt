@@ -14,7 +14,7 @@ Ensure you have already installed the `serve` package:
 yarn global serve
 ```
 
-- Before deploying new changes to the codebase, we will test how the app performs in in production mode by running the following commands:
+Before deploying new changes to the codebase, we will test how the app performs in in production mode by running the following commands:
 
 ```bash
 yarn build
@@ -49,3 +49,21 @@ Simulate real user interactions across the app:
 ```bash
 yarn test:e2e
 ```
+
+## Environment Variables
+
+Dynamically configuring environment variables for development, CI/CD environment, and production.
+
+- Current problem: the react application is currently hardcoded to proxy api requests to "http://localhost:8000", which will not work in production.
+
+- Frontend must detect which environment it is running in (development) or on AWS (production) and set the environment variables accordingly.
+
+### Mixed Content Block
+
+HTTPS frontend sending api requets to HTTP.
+
+Current problem: the react application is served over HTTPS, but the API behind AWS ECS is served over HTTP.
+
+- Modern browsers typically block "Mixed Content" requests (secure-to-insecure communication) for security reasons.
+
+
