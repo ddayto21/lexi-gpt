@@ -1,20 +1,46 @@
-# This file is only used for local development and testing.
-# - Overrides `docker-compose.yml` settings when running `docker compose up --build`
-# - Mounts code for live development (useful for FastAPI changes).
-# - Dynamically loads environment variables from `.env` for easier configuration.
+# docker-compose.override.yml
+# 🔹 Defines the core stack for CI/CD and automated testing.
+# 🔹 No volumes are used to ensure fresh builds and avoid dependency on local files.
 
 services:
-  api:
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD} # Use Redis password from .env file
-      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN} # Allow CORS from local frontend
+      - CHOKIDAR_USEPOLLING=true 
+    depends_on:
+      - api
+
+  api:
+    volumes:
+      - ./backend:/app
+    
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - redis
+    
+    ports:
+      - "127.0.0.1:8000:8000" 
+
+    environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Load Redis password from .env file
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN} # Allow CORS from local frontend host
       - UVICORN_WORKERS=${UVICORN_WORKERS:-4} # Default to 4 workers
-    volumes:
-      - .:/code # Mount local code for live updates
-    ports:
-      - "127.0.0.1:8000:8000" # Restrict access to localhost only
+
+   
+   
     command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "${UVICORN_WORKERS:-4}" ]
 
   redis:
