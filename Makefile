@@ -6,6 +6,14 @@
 include backend/.env
 export $(shell sed 's/=.*//' backend/.env)
 
+# Colors for better readability
+RESET=\033[0m
+BLUE=\033[1;34m
+GREEN=\033[1;32m
+YELLOW=\033[1;33m
+RED=\033[1;31m
+
+
 # ✅ Required environment variables
 REQUIRED_ENV_VARS = REDIS_PASSWORD FRONTEND_ORIGIN JWT_SECRET_KEY
 
@@ -104,3 +112,49 @@ run-container:
 
 inspect-container:
 	@echo "🔍 Opening shell inside the running container..."
+
+
+# -----------------------------------------------
+#  Optimize Build - Clean Unused Dependencies 
+# -----------------------------------------------
+clean-deps:
+	@BACKEND_DIR="$$(cd "$(dirname "$$0")" && pwd)/backend"; \
+	if [ ! -d "$$BACKEND_DIR" ]; then \
+		echo "$(RED)❌ Error: Directory $$BACKEND_DIR does not exist.$(RESET)"; \
+		exit 1; \
+	fi; \
+	echo "$(BLUE)📂 Changing directory to $$BACKEND_DIR...$(RESET)"; \
+	cd $$BACKEND_DIR; \
+	echo "$(YELLOW)🚀 **Activating virtual environment...**$(RESET)"; \
+	if [ ! -d "$$BACKEND_DIR/venv" ]; then \
+		echo "$(RED)❌ Error: Virtual environment not found in $$BACKEND_DIR/venv.$(RESET)"; \
+		echo "$(YELLOW)🔹 Run the following command to create it:$(RESET)"; \
+		echo '```sh'; \
+		echo "python -m venv venv"; \
+		echo '```'; \
+		exit 1; \
+	fi; \
+	echo '```sh'; \
+	echo "source venv/bin/activate"; \
+	echo '```'; \
+	source venv/bin/activate; \
+	echo ""; \
+	echo "$(GREEN)🔍 **Identifying used dependencies with pipreqs...**$(RESET)"; \
+	echo '```sh'; \
+	echo "pipreqs . --force"; \
+	echo '```'; \
+	pipreqs . --force; \
+	echo ""; \
+	echo "$(GREEN)📜 **Comparing new requirements.txt with original...**$(RESET)"; \
+	echo '```sh'; \
+	echo "git diff requirements.txt > removed_deps.txt || true"; \
+	echo '```'; \
+	git diff requirements.txt > removed_deps.txt || true; \
+	echo ""; \
+	echo "$(YELLOW)🔢 **Number of dependencies removed:**$(RESET)"; \
+	echo '```sh'; \
+	echo "cat removed_deps.txt | grep '^- ' | wc -l"; \
+	echo '```'; \
+	cat removed_deps.txt | grep '^- ' | wc -l; \
+	echo ""; \
+	echo "$(GREEN)✅ **Unused dependencies have been identified. Review 'removed_deps.txt'.**$(RESET)"
