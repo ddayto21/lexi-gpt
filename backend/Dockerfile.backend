@@ -36,10 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir cython numpy
 
 # 8) Pre-install a compatible version of blis to avoid build errors during spaCy installation
-RUN pip install --no-cache-dir blis==1.2.0
-
-# 9) Install spaCy using the pre-installed blis version
-RUN pip install --no-cache-dir --force-reinstall spacy==3.8.3
+RUN pip install --no-cache-dir blis==1.0.0  
 
 # 10) Install the remaining dependencies from requirements.txt
 RUN pip install -r /code/requirements.txt
