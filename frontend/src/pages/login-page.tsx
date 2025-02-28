@@ -22,16 +22,18 @@ export function LoginPage() {
     const SCOPE = encodeURIComponent("openid email profile");
 
     const authUrl =
-      `https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?` +
+      `https://accounts.google.com/o/oauth2/v2/auth/auth?` +
       `client_id=${CLIENT_ID}` +
       `&redirect_uri=${REDIRECT_URI}` +
       `&response_type=code` +
       `&scope=${SCOPE}` +
       `&access_type=offline` +
-      `&service=lso&o2v=2&ddm=1&flowName=GeneralOAuthFlow`;
+      // Ensure user is prompted for consent, even if previously granted
+      `&prompt=consent`;
+    // `&service=lso&o2v=2&ddm=1&flowName=GeneralOAuthFlow`;
 
     console.log("Generated Auth URL:", authUrl);
-    window.open(authUrl);
+    window.open(authUrl, "_self");
   };
 
   return (

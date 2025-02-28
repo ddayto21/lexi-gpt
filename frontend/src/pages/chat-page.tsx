@@ -1,5 +1,5 @@
 /**
- * @file App.tsx - Main entry point for the chat application.
+ * @file chat-page.tsx - Main entry point for the chat application.
  *
  * This component:
  * - Manages chat interactions via the `useChat` hook.
@@ -22,8 +22,6 @@ import { prompts } from "@data/constants/prompts";
 
 import { chatOptions } from "../config/chat-options";
 
-import { nonBlockingLog } from "@utils/logger";
-
 /**
  * The main chat application component.
  *
@@ -36,6 +34,17 @@ import { nonBlockingLog } from "@utils/logger";
  */
 
 export function ChatPage() {
+  /**
+   * Memoizes the `chatOptions` configuration to prevent unnecessary re-renders.
+   * Ensures that `useChat` does not reinitialize on every render.
+   */
+  const options = useMemo(
+    () => ({
+      ...chatOptions,
+    }),
+    []
+  );
+
   /**
    * Stores any error messages that occur during chat interactions.
    * Used to display error feedback to users.
@@ -53,62 +62,50 @@ export function ChatPage() {
   const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
 
   /**
-   * Memoizes the `chatOptions` configuration to prevent unnecessary re-renders.
-   * Ensures that `useChat` does not reinitialize on every render.
-   */
-  const options = useMemo(
-    () => ({
-      ...chatOptions,
-    }),
-    []
-  );
-  /**
    * Initializes `useChat` to manage chat state and interactions.
    * Connects to the `/api/chat` endpoint.
    * Manages real-time streaming of LLM responses.
    * Handles input changes and message submissions.
    */
-  const {
-    messages,
-    input,
-    status,
-    append,
-    setInput,
-    handleInputChange,
-    handleSubmit,
-  } = useChat(options);
+  const { messages, input, status, append, setInput, handleInputChange } =
+    useChat(options);
 
-  /**
-   * Handles the event when a user selects a prompt suggestion.
-   *
-   * - Sends the selected prompt to the assistant.
-   * - Directly appends the user message without using `handleSubmit`.
-   * - Clears the input field after sending.
-   *
-   * @param {string} promptContent - The selected prompt text.
-   * @returns {Promise<void>}
-   */
-  const onPromptClick = async (promptContent: string) => {
-    if (!promptContent.trim()) return;
-
-    nonBlockingLog(`🟠 onPromptClick() → Sending prompt: "${promptContent}"`);
+  // Unified message sending logic
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || status !== "ready") return;
 
     const messagePayload: Message = {
       id: String(Date.now()),
       role: "user",
-      content: promptContent,
+      content,
       createdAt: new Date(),
     };
 
-    nonBlockingLog("📦 Sending user prompt:", messagePayload);
-
     try {
+      setInput(""); // Optimistic clear
       await append(messagePayload);
-      setInput("");
+      setErrorMessage(null);
     } catch (error) {
-      setErrorMessage("Failed to send prompt. Please try again.");
-      nonBlockingLog("🔴 Error sending user prompt:", error);
+      setErrorMessage("Failed to send message. Please try again.");
+      setInput(content); // Restore on failure
+      console.error("Error sending message:", error);
     }
+  };
+
+  /**
+   * Handle form submission
+   */
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    sendMessage(input);
+  };
+
+  /**
+   * 
+   * Handle prompt click
+   */
+  const onPromptClick = (promptContent: string) => {
+    sendMessage(promptContent);
   };
 
   return (
