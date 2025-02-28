@@ -35,7 +35,6 @@ client = AsyncOpenAI(api_key=API_KEY, base_url="https://api.deepseek.com/v1")
 
 @router.post("/chat")
 async def chat(req: ChatRequest):
-    print("/chat route")
     system_prompt = ChatMessage(
         role="system",
         content=(
@@ -55,7 +54,6 @@ async def chat(req: ChatRequest):
 
     # Insert system prompt at the beginning of the conversation history
     req.messages.insert(0, system_prompt)
-    print("req.messages", req.messages)
 
     stream = await client.chat.completions.create(
         model="deepseek-chat",

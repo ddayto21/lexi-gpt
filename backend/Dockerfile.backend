@@ -1,42 +1,55 @@
 # syntax=docker/dockerfile:1
 
-# Use a smaller base image (test for compatibility)
-FROM python:3.10-alpine
+FROM python:3.10-slim
 
-# Set environment variables
+# 2) Set environment variables to optimize pip behavior and fix BLIS build on ARM
 ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=on \
+    PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100
+    PIP_DEFAULT_TIMEOUT=100 \
+    BLIS_ARCH=generic
 
-# Install system dependencies (combined for fewer layers)
-RUN apk add --no-cache \
-    build-base \
+# 3) Install system dependencies (added extra libraries for building numeric libraries)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     python3-dev \
     libffi-dev \
-    openblas-dev \
-    lapack-dev && \
-    rm -rf /var/cache/apk/*
+    libopenblas-dev \
+    liblapack-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# 4) Set the working directory inside the container
 WORKDIR /code
 
-# Copy only dependency files first for caching
-COPY requirements.txt /code/
+# 5) Copy only dependency files first for Docker caching
+COPY requirements.txt /code/requirements.txt
 
-# Install Python dependencies efficiently
-RUN pip install --no-cache-dir cython numpy blis==1.0.0 && \
-    pip install --no-cache-dir -r /code/requirements.txt
+# 6) Upgrade pip, setuptools, and wheel
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Copy application code
+# 7) Install base dependencies (cython and numpy)
+RUN pip install --no-cache-dir cython numpy
+
+# 8) Pre-install a compatible version of blis to avoid build errors during spaCy installation
+RUN pip install --no-cache-dir blis==1.0.0  
+
+# 10) Install the remaining dependencies from requirements.txt
+RUN pip install -r /code/requirements.txt
+
+# 11) Copy the rest of the application code
 COPY ./app /code/app
 
-# Clean up unnecessary files
-RUN find /code/app -type d -name "__pycache__" -exec rm -r {} + && \
-    rm -rf /code/app/.pytest_cache /code/app/.vscode /code/app/.git /code/ecs /ecs
+# 12) Remove unnecessary local/dev files
+RUN rm -rf /code/app/__pycache__ \
+    && rm -rf /code/app/.pytest_cache \
+    && rm -rf /code/app/.vscode \
+    && rm -rf /code/app/.git \
+    && rm -rf /code/ecs \
+    && rm -rf /ecs
 
-# Expose port
+# 13) Expose port 8000 for FastAPI
 EXPOSE 8000
 
-# Run the app
+# 14) Set the entrypoint to run FastAPI
 CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
