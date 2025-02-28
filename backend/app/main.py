@@ -18,7 +18,7 @@ from app.config import (
     REDIS_URL,
 )
 from app.api import router as api_router
-from app.clients.book_cache_client import CacheClient
+from app.clients.cache_client import CacheClient
 from app.pipelines.load import load_book_embeddings, load_book_metadata
 from app.session_middleware import SessionMiddleware
 
@@ -109,15 +109,10 @@ async def root():
 
 @app.get("/healthcheck/redis")
 async def redis_healthcheck(request: Request):
-    """Checks if Redis is running and reachable."""
     cache = request.app.state.cache
-    if cache is None:
-        raise HTTPException(status_code=500, detail="Redis is unavailable")
-    try:
-        cache.redis.ping()
-        return {"status": "ok"}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Redis ping failed")
+    if cache is None or not cache.is_healthy():
+        raise HTTPException(status_code=500, detail="Redis unavailable")
+    return {"status": "ok"}
 
 
 # Handle OS signals for graceful shutdown
