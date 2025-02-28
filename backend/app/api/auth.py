@@ -6,7 +6,8 @@ from app.services.auth import exchange_code_for_token
 import os
 import jwt
 import datetime
-
+from google.auth import jwt as google_jwt
+from google.auth.transport import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +15,8 @@ load_dotenv()
 router = APIRouter()
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
 ALGORITHM = "HS256"
 
 
@@ -41,42 +44,62 @@ async def auth_callback(request: Request, cache: CacheClient = Depends(get_cache
             status_code=401, detail="Failed to retrieve Google ID token"
         )
 
-    # Decode Google’s ID token (insecure for demo; verify in production)
-    decoded_google_token = jwt.decode(
-        google_id_token, options={"verify_signature": False}
-    )
+    # Verify the Google ID token using google-auth
+    try:
+        # Fetch Google's public keys for verification
+        request_session = requests.Request()
+        id_info = google_jwt.decode(
+            google_id_token,
+            certs_url="https://www.googleapis.com/oauth2/v3/certs",
+            audience=GOOGLE_CLIENT_ID,
+            verify=True,
+            request=request_session,
+        )
 
-    # Extract user profile information from google
-    user_profile = {
-        "sub": decoded_google_token["sub"],  # Google User ID
-        "email": decoded_google_token["email"],
-        "name": decoded_google_token.get("name", ""),
-    }
-    print("user_profile", user_profile)
+        # Extract user profile information from the verified ID token
+        user_profile = {
+            "sub": id_info["sub"],  # Google User ID
+            "email": id_info["email"],
+            "name": id_info.get("name", ""),
+            "picture": id_info.get("picture", ""),  # Profile picture URL
+        }
+        print("user_profile", user_profile)
 
-    # Store user profile data in cache
-    redis_key = f"user: {user_profile['sub']}:profile"
-    success = cache.set_hash(
-        redis_key, {"email": user_profile["email"], "name": user_profile["name"]}
-    )
-    if not success:
-        # Log the failure but don’t block auth—cache is optional for now
-        print(f"Failed to cache profile for user {user_profile['sub']}")
+        # Store user profile data in cache, including the picture
+        redis_key = f"user:{user_profile['sub']}:profile"
+        success = cache.set_hash(
+            redis_key,
+            {
+                "email": user_profile["email"],
+                "name": user_profile["name"],
+                "picture": user_profile["picture"],
+            },
+        )
+        if not success:
+            print(f"Failed to cache profile for user {user_profile['sub']}")
 
-    # Generate JWT payload for session token
-    payload = {
-        "sub": user_profile["sub"],
-        "email": user_profile["email"],
-        "name": user_profile["name"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
-    }
+        # Generate JWT payload for session token
+        payload = {
+            "sub": user_profile["sub"],
+            "email": user_profile["email"],
+            "name": user_profile["name"],
+            "picture": user_profile["picture"],  # Include picture in JWT
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        }
 
-    jwt_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+        jwt_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    # Set JWT in HTTP-only cookie and redirect to chat
-    response = RedirectResponse(url="http://localhost:3000/chat")
-    response.set_cookie("token", jwt_token, httponly=True, secure=True, samesite="Lax")
-    return response
+        # Set JWT in HTTP-only cookie and redirect to chat
+        response = RedirectResponse(url="http://localhost:3000/chat")
+        response.set_cookie(
+            "token", jwt_token, httponly=True, secure=True, samesite="Lax"
+        )
+        return response
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Invalid Google ID token: {str(e)}"
+        )
 
 
 @router.get("/api/auth/status")
@@ -95,9 +118,13 @@ async def check_auth(request: Request, cache: CacheClient = Depends(get_cache)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         profile = cache.get_hash(f"user:{decoded_token['sub']}:profile") or {}
-        return {"message": "Authenticated", "user": decoded_token, "profile": profile}
+        return {
+            "message": "Authenticated",
+            "user": decoded_token,
+            "profile": profile,
+        }
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
