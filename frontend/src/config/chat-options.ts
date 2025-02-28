@@ -1,6 +1,5 @@
 // src/config/chatOptions.ts
 import { type UseChatOptions, type Message } from "@ai-sdk/react";
-import { nonBlockingLog } from "@utils/logger";
 
 /**
  * @description Configuration for the useChat hook, defining the interaction with the backend API.
@@ -82,7 +81,7 @@ export const chatOptions: UseChatOptions = {
    * @param {Error} error - The error object representing the issue.
    */
   onError: (error) => {
-    nonBlockingLog("❌ Chat interaction error:", error);
+    console.error("❌ Chat interaction error:", error);
   },
 
   /**
@@ -94,6 +93,6 @@ export const chatOptions: UseChatOptions = {
    * @param {Response} response - The HTTP response object from the FastAPI server.
    */
   onResponse: (response) => {
-    nonBlockingLog("📦 Chat response:", response);
+    console.log("📦 Chat response:", response);
   },
 };

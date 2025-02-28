@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChatMarkdown component renders markdown content correctly (snapshot) 1`] = `
+<div>
+  <div>
+    <br />
+    <h1
+      class="text-3xl font-bold mb-4 text-white"
+      id="heading-1"
+    >
+      Heading 1
+    </h1>
+    <ul
+      class="list-disc pl-6 mb-2 text-gray-300"
+    >
+      <li
+        class="mb-1"
+      >
+        Bullet 1
+      </li>
+      <li
+        class="mb-1"
+      >
+        <p
+          class="mb-2 text-gray-300"
+        >
+          Bullet 2
+        </p>
+        <p
+          class="mb-2 text-gray-300"
+        >
+          <strong>
+            Bold Text
+          </strong>
+        </p>
+        <blockquote
+          class="border-l-4 pl-4 italic text-gray-400 my-4 text-gray-300"
+        >
+          <p
+            class="mb-2 text-gray-300"
+          >
+            A blockquote
+          </p>
+        </blockquote>
+        
+
+      </li>
+    </ul>
+  </div>
+</div>
+`;

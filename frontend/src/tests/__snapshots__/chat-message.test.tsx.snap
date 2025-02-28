@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChatMessageComponent renders assistant message with properly formatted markdown 1`] = `
+<div>
+  <div
+    class="flex items-start justify-start"
+  >
+    <div
+      class="mr-2 flex-none"
+    >
+      <div
+        class="flex-none mr-2"
+      >
+        <div
+          class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center"
+        >
+          <svg
+            class="w-2/3 h-2/3 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 4v1m6.364 1.636l-.707.707M20 12h-1M17.657 17.657l-.707-.707M12 20v-1m-6.364-1.636l.707-.707M4 12h1m2.343-5.657l.707.707M12 4a8 8 0 100 16 8 8 0 000-16z"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl px-4 py-3 rounded-2xl shadow bg-neutral-800 rounded-bl-none"
+    >
+      <div
+        class="flex items-center gap-2 mb-1"
+      >
+        <span
+          class="font-semibold text-sm text-gray-200"
+        >
+          LexiGPT
+        </span>
+        <span
+          class="text-xs text-gray-400"
+        >
+          less than a minute ago
+        </span>
+      </div>
+      <div
+        class="text-sm leading-snug whitespace-pre-wrap text-gray-100"
+      >
+        <h1
+          class="text-3xl font-bold mb-4 text-white"
+          id="great-choice-historical-fiction-is-a-rich-and-diverse-genre-full-of-suspense-twists-and-heart-p-ounding-moments-here-are-some-gripping-thrill-ers-across-different-sub-gen-res-to-get-you-started--psychological-thr-illers-1-g-one-girlby-gill-ian-flynn--a-dark-twist-y-tale-of-a-marriage-gone-wrong-with-unreliable-narr-ators-and-shocking-revelations-2-the-silent-patientby-alex-michael-ides--a-psychological-thriller-about-a-woman-who-stops-speaking-after-a-shocking-act-of-violence-and-the-therapist-determined-to-uncover-her-secrets-3-behind-closed-doorsby-b-a-paris--a-chilling-story-about-a-seemingly-perfect-couple-with-a-horr-ifying-secret"
+        >
+          Great choice! Historical fiction is a rich and diverse genre, full of suspense, twists, and heart-p ounding moments! Here are some gripping thrill ers across different sub gen res to get you started: ### Psychological Thr illers 1. "G one Girl"by Gill ian Flynn -A dark, twist y tale of a marriage gone wrong, with unreliable narr ators and shocking revelations. 2. "The Silent Patient"by Alex Michael ides -A psychological thriller about a woman who stops speaking after a shocking act of violence, and the therapist determined to uncover her secrets. 3. "Behind Closed Doors"by B. A. Paris -A chilling story about a seemingly perfect couple with a horr ifying secret.
+        </h1>
+      </div>
+    </div>
+  </div>
+</div>
+`;

@@ -12,7 +12,7 @@ import App from "./App"; // Main application component
 import reportWebVitals from "./reportWebVitals"; // Performance monitoring utility
 
 // Enable global fetch logging for API requests
-import "./setupFetchLogger";
+// import "./setupFetchLogger";
 
 /**
  * The root element where the React application is mounted.
