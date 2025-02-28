@@ -2,11 +2,12 @@
 
 FROM python:3.10-slim
 
-# 2) Set environment variables to optimize pip behavior
+# 2) Set environment variables to optimize pip behavior and fix BLIS build on ARM
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 
+    PIP_DEFAULT_TIMEOUT=100 \
+    BLIS_ARCH=generic
 
 # 3) Install system dependencies (added extra libraries for building numeric libraries)
 RUN apt-get update && apt-get install -y --no-install-recommends \
