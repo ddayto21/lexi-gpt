@@ -71,3 +71,39 @@ http://localhost:8000/docs
 - Create OAuth Client ID
 - Web Application
 - Set callback url ('/auth/callback')
+
+---
+
+## Unit Tests
+
+### 1. Authentication (OAuth2)
+
+- Validate Google OAuth token exchange (/auth/callback).
+- Ensure expired/invalid tokens return 401 Unauthorized.
+- Verify user info extraction from Google tokens.
+
+### 2. Authorization (JWT)
+
+- Ensure only authenticated users access protected routes.
+- Check token expiration & refresh logic.
+
+### 3. API Endpoints (FastAPI)
+
+- Test `CRUD` operations (e.g., `/books`, `/users`).
+- Ensure response formats & status codes are correct.
+
+### 4. Secrets & Config Loading
+
+- Validate `AWS Secrets Manager` integration/
+- Ensure environment variables (`REDIS_PASSWORD`, `JWT_SECRET_KEY`) load correctly.
+
+### 5. Error Handling
+
+- Ensure exceptions (e.g., HTTPException, IntegrityError) return proper responses.
+
+### 6. Caching (Redis)
+
+- Validate that API responses are cached correctly.
+- Ensure cache invalidation works.
+
+---
