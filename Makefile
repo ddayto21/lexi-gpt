@@ -50,16 +50,19 @@ docker-build: check-env
 
 # -----------------------------------------------
 # 🐳 Docker Start: Start containers using existing images (no rebuild)
+#        and then display logs from running containers.
 # -----------------------------------------------
 docker-start: check-env
 	@echo "🚀 Starting Docker Compose (using existing images)..."
 	docker compose up -d
+	@echo "🚀 Displaying logs for running containers (press Ctrl+C to exit)..."
+	docker compose logs -f
+
 
 # -----------------------------------------------
 # 🔄 Docker Restart: Build then start (for when you know changes have been made)
 # -----------------------------------------------
-docker-restart: docker-build docker-start
-
+docker-restart: docker-build docker-star
 
 # -----------------------------------------------
 # 🚀 Step 3: Build and Deploy Backend to AWS
