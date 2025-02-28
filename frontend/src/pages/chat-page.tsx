@@ -88,26 +88,43 @@ export function ChatPage() {
     } catch (error) {
       setErrorMessage("Failed to send message. Please try again.");
       setInput(content); // Restore on failure
-      console.error("Error sending message:", error);
     }
   };
 
-  /**
-   * Handle form submission
-   */
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    sendMessage(input);
-  };
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!input.trim() || status !== "ready") return; // Prevent empty or concurrent submits
 
-  /**
-   * 
-   * Handle prompt click
-   */
-  const onPromptClick = (promptContent: string) => {
-    sendMessage(promptContent);
+    sendMessage(input); // Use the unified sendMessage function
   };
+  /**
+   * Handles the event when a user selects a prompt suggestion.
+   *
+   * - Sends the selected prompt to the assistant.
+   * - Directly appends the user message without using `handleSubmit`.
+   * - Clears the input field after sending.
+   *
+   * @param {string} promptContent - The selected prompt text.
+   * @returns {Promise<void>}
+   */
+  const onPromptClick = async (promptContent: string) => {
+    if (!promptContent.trim()) return;
 
+    const messagePayload: Message = {
+      id: String(Date.now()),
+      role: "user",
+      content: promptContent,
+      createdAt: new Date(),
+    };
+
+    try {
+      await append(messagePayload);
+      setInput("");
+    } catch (error) {
+      console.error("Error sending prompt:", error);
+      setErrorMessage("Failed to send prompt. Please try again.");
+    }
+  };
   return (
     <div className="flex flex-col h-screen bg-black text-white font-sans">
       <Header />

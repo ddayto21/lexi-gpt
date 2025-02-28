@@ -68,9 +68,9 @@ export const chatOptions: UseChatOptions = {
    * @param {RequestInit} options - Fetch request options (headers, method, body).
    * @returns {Promise<Response>} - The API response from FastAPI.
    */
-  fetch: async (url, options) => {
-    return await fetch(url, options);
-  },
+  // fetch: async (url, options) => {
+  //   return await fetch(url, options);
+  // },
 
   /**
    * Handles errors encountered during the chat interaction.
@@ -80,9 +80,9 @@ export const chatOptions: UseChatOptions = {
    *
    * @param {Error} error - The error object representing the issue.
    */
-  onError: (error) => {
-    console.error("❌ Chat interaction error:", error);
-  },
+  // onError: (error) => {
+  //   console.error("❌ Chat interaction error:", error);
+  // },
 
   /**
    * Handles responses received from the FastAPI backend.
@@ -92,7 +92,7 @@ export const chatOptions: UseChatOptions = {
    *
    * @param {Response} response - The HTTP response object from the FastAPI server.
    */
-  onResponse: (response) => {
-    console.log("📦 Chat response:", response);
-  },
+  // onResponse: (response) => {
+  //   console.log("📦 Chat response:", response);
+  // },
 };

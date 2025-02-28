@@ -90,5 +90,18 @@ module.exports = {
     },
   },
   variants: {},
-  plugins: [require("tailwindcss-animate")],
-};
+  plugins: [
+    require("tailwindcss-animate"),
+    // Add this if `scrollbar-hide` isn’t working
+    function ({ addUtilities }) {
+      addUtilities({
+        ".scrollbar-hide": {
+          "-ms-overflow-style": "none", // IE and Edge
+          "scrollbar-width": "none", // Firefox
+          "&::-webkit-scrollbar": {
+            display: "none", // Chrome, Safari, and Opera
+          },
+        },
+      });
+    },
+  ],};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 
 export const Header: React.FC = () => {
@@ -7,11 +7,13 @@ export const Header: React.FC = () => {
     picture?: string;
     name?: string;
   } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null); // Ref for the menu
+  const profileButtonRef = useRef<HTMLButtonElement>(null); // Ref for the profile button
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch("/api/auth/profile", {
+        const response = await fetch("http://localhost:8000/auth/profile", {
           credentials: "include",
         });
         if (response.ok) {
@@ -28,7 +30,8 @@ export const Header: React.FC = () => {
     fetchUserProfile();
   }, []);
 
-  const handleProfileClick = () => {
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     setIsMenuOpen(!isMenuOpen);
   };
 
@@ -49,96 +52,131 @@ export const Header: React.FC = () => {
     setIsMenuOpen(false);
   };
 
+  // New function: Send DELETE request to clear user data from cache.
+  const handleDeleteUserData = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/auth/cache", {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (response.ok) {
+        console.log("User data deleted from cache.");
+        // Optionally, update UI state or provide user feedback.
+      } else {
+        console.error("Failed to delete user data:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error deleting user data:", error);
+    }
+    setIsMenuOpen(false);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        profileButtonRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        !profileButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  // Dynamically position the menu to stay within viewport
+  const positionMenu = () => {
+    if (menuRef.current && profileButtonRef.current) {
+      const buttonRect = profileButtonRef.current.getBoundingClientRect();
+      const menu = menuRef.current;
+      const viewportHeight = window.innerHeight;
+
+      let top = buttonRect.bottom + 2; // Default margin-top of 2px
+      if (top + menu.offsetHeight > viewportHeight) {
+        top = buttonRect.top - menu.offsetHeight - 2; // Position above if it would exceed viewport
+      }
+
+      menu.style.top = `${top}px`;
+      menu.style.right = "0";
+    }
+  };
+
+  useEffect(() => {
+    if (isMenuOpen && menuRef.current && profileButtonRef.current) {
+      positionMenu();
+      window.addEventListener("resize", positionMenu);
+    }
+    return () => window.removeEventListener("resize", positionMenu);
+  }, [isMenuOpen]);
+
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800 shadow-md relative">
+    <header className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800 shadow-sm relative">
       <div className="flex items-center">
         <AiAvatar />
-        <h1 className="ml-2 text-lg font-bold text-white">AI Book Finder</h1>
+        <h1 className="ml-2 text-lg font-semibold text-white">LexiGPT</h1>
       </div>
       <div className="flex items-center space-x-2 relative">
-        <button className="text-gray-400 hover:text-gray-300">
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+        <button
+          ref={profileButtonRef} // Attach ref to profile button
+          onClick={handleProfileClick}
+          className="profile-button flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-gray-600 border border-gray-700 hover:border-gray-500 transition-all duration-200"
+          aria-label="Profile menu"
+        >
+          {userProfile?.picture ? (
+            <img
+              src={userProfile.picture}
+              alt="User Profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/default-avatar.jpg";
+              }}
             />
-          </svg>
-        </button>
-        <button className="text-gray-400 hover:text-gray-300">
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        </button>
-        <div className="relative">
-          <button
-            onClick={handleProfileClick}
-            className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-gray-500"
-          >
-            {userProfile?.picture ? (
-              <img
-                src={userProfile.picture}
-                alt="User Profile"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/default-avatar.jpg";
-                }}
-              />
-            ) : (
-              <span className="text-white">?</span>
-            )}
-          </button>
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg z-10">
-              <ul className="py-1">
-                <li>
-                  <button className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-neutral-700 hover:text-white">
-                    Settings
-                  </button>
-                </li>
-                <li>
-                  <button className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-neutral-700 hover:text-white">
-                    Help & Feedback
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-neutral-700 hover:text-white"
-                  >
-                    Sign Out
-                  </button>
-                </li>
-              </ul>
-            </div>
+          ) : (
+            <span className="text-white text-sm">?</span>
           )}
-        </div>
+        </button>
         {userProfile && userProfile.name && (
-          <span className="ml-2 text-white font-medium">
+          <span
+            onClick={handleProfileClick}
+            className="ml-2 text-white font-medium text-sm cursor-pointer hover:text-gray-300 transition-colors duration-200"
+          >
             {userProfile.name}
           </span>
+        )}
+        {isMenuOpen && (
+          <div
+            ref={menuRef} // Attach ref to menu
+            className="header-menu absolute z-50 w-48 bg-gradient-to-b from-black via-gray-900 to-black border border-gray-700 rounded-xl shadow-lg animate-slide-down"
+          >
+            <ul className="py-1">
+              <li>
+                <button
+                  onClick={handleDeleteUserData}
+                  className="flex items-center w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                >
+                  <span className="mr-2 text-gray-400">🗑️</span> Clear User Data
+                </button>
+              </li>
+
+              <li>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center w-full text-left px-4 py-2 text-gray-300 hover:bg-red-700 hover:text-white transition-colors duration-200"
+                >
+                  <span className="mr-2 text-gray-400">🚪</span> Sign Out
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
       </div>
     </header>
