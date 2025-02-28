@@ -1,6 +1,6 @@
 # docker-compose.override.yml
 # 🔹 Defines the core stack for CI/CD and automated testing.
-# 🔹 No volumes are used to ensure fresh builds and avoid dependency on local files.
+# 🔹 Volumes are used to ensure fresh builds and avoid dependency on local files.
 
 services:
   frontend:
@@ -19,7 +19,7 @@ services:
 
   api:
     volumes:
-      - ./backend:/app
+      - ./backend/app:/code/app
     
     build:
       context: ./backend

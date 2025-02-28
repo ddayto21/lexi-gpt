@@ -42,26 +42,24 @@ check-env: setup
 	@echo "✅ All required environment variables are set."
 
 # -----------------------------------------------
-# 🐳 Step 2: Start Docker Containers
+# 🐳 Docker Build: Rebuild images (only rebuilds if context has changed)
+# -----------------------------------------------
+docker-build: check-env
+	@echo "🚀 Building Docker images..."
+	docker compose build
+
+# -----------------------------------------------
+# 🐳 Docker Start: Start containers using existing images (no rebuild)
 # -----------------------------------------------
 docker-start: check-env
-	@echo "🐳 Checking if Docker is running..."
-	@if ! docker info > /dev/null 2>&1; then \
-		echo "❌ Error: Docker is not running. Please start Docker and try again."; \
-		exit 1; \
-	fi
-	
-	# Determine if the command is being run from the monorepo root
-	@ROOT_DIR="$$(git rev-parse --show-toplevel 2>/dev/null || echo "$$(pwd)")"; \
-	CURRENT_DIR="$$(pwd)"; \
-	if [[ "$$CURRENT_DIR" != "$$ROOT_DIR" ]]; then \
-		echo "📂 Switching to monorepo root at $$ROOT_DIR..."; \
-		cd $$ROOT_DIR; \
-	fi
+	@echo "🚀 Starting Docker Compose (using existing images)..."
+	docker compose up -d
 
+# -----------------------------------------------
+# 🔄 Docker Restart: Build then start (for when you know changes have been made)
+# -----------------------------------------------
+docker-restart: docker-build docker-start
 
-	@echo "🚀 Starting Docker Compose..."
-	docker compose up --build
 
 # -----------------------------------------------
 # 🚀 Step 3: Build and Deploy Backend to AWS
