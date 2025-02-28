@@ -4,6 +4,7 @@ import redis
 import os
 import logging
 from typing import Optional, Any, Dict, Union
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 
 class CacheClient:
@@ -209,3 +210,12 @@ class CacheClient:
         except redis.RedisError as e:
             logging.error(f"TTL check failed for key {normalized_key}: {e}")
             return -2
+
+
+# Dependency to retrieve the cache from app.state
+async def get_cache(request: Request) -> CacheClient:
+    """Fetch the CacheClient instance from app.state, ensuring it’s available."""
+    cache = request.app.state.cache
+    if not cache or not cache.is_healthy():
+        raise HTTPException(status_code=500, detail="Cache service unavailable")
+    return cache

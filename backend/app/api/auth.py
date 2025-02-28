@@ -1,7 +1,7 @@
 # app/api/auth.py
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse
-from app.clients.cache_client import CacheClient
+from app.clients.cache_client import CacheClient, get_cache
 from app.services.auth import exchange_code_for_token
 import os
 import jwt
@@ -15,15 +15,6 @@ router = APIRouter()
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
-
-
-# Dependency to retrieve the cache from app.state
-async def get_cache(request: Request) -> CacheClient:
-    """Fetch the CacheClient instance from app.state, ensuring it’s available."""
-    cache = request.app.state.cache
-    if not cache or not cache.is_healthy():
-        raise HTTPException(status_code=500, detail="Cache service unavailable")
-    return cache
 
 
 @router.get("/auth/callback")
@@ -61,6 +52,7 @@ async def auth_callback(request: Request, cache: CacheClient = Depends(get_cache
         "email": decoded_google_token["email"],
         "name": decoded_google_token.get("name", ""),
     }
+    print("user_profile", user_profile)
 
     # Store user profile data in cache
     redis_key = f"user: {user_profile['sub']}:profile"
