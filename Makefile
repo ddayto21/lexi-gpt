@@ -16,13 +16,11 @@ RED=\033[1;31m
 
 # ✅ Required environment variables
 REQUIRED_ENV_VARS = REDIS_PASSWORD FRONTEND_ORIGIN JWT_SECRET_KEY
-
-.PHONY: setup check-env docker-start deploy update-lambda deploy-lambda
+.PHONY: setup check-env docker-build docker-start docker-stop docker-logs docker-run docker-restart deploy update-lambda deploy-lambda
 
 # -----------------------------------------------
 # 🚀 Step 1: Load and Validate Environment Variables
 # -----------------------------------------------
-
 setup:
 	@echo "🚀 Loading environment variables from backend/.env..."
 	@if [ ! -f backend/.env ]; then \
@@ -37,7 +35,7 @@ check-env: setup
 		if [ -z "$$(printenv $$var)" ]; then \
 			echo "❌ Error: Missing $$var in backend/.env. Ensure all required variables are set."; \
 			exit 1; \
-		fi \
+		fi; \
 	done
 	@echo "✅ All required environment variables are set."
 
@@ -49,20 +47,35 @@ docker-build: check-env
 	docker compose build
 
 # -----------------------------------------------
-# 🐳 Docker Start: Start containers using existing images (no rebuild)
-#        and then display logs from running containers.
+# 🐳 Docker Start: Start containers using existing images (detached mode)
 # -----------------------------------------------
 docker-start: check-env
 	@echo "🚀 Starting Docker Compose (using existing images)..."
 	docker compose up -d
+
+# -----------------------------------------------
+# 🐳 Docker Logs: Display logs for running containers (follow mode)
+# -----------------------------------------------
+docker-logs: check-env
 	@echo "🚀 Displaying logs for running containers (press Ctrl+C to exit)..."
 	docker compose logs -f
 
+# -----------------------------------------------
+# 🐳 Docker Stop: Stop and remove running containers
+# -----------------------------------------------
+docker-stop: check-env
+	@echo "🚀 Stopping Docker Compose containers..."
+	docker compose down
 
 # -----------------------------------------------
-# 🔄 Docker Restart: Build then start (for when you know changes have been made)
+# 🔄 Docker Run: Build, start, and then display logs
 # -----------------------------------------------
-docker-restart: docker-build docker-star
+docker-run: docker-build docker-start docker-logs
+
+# -----------------------------------------------
+# 🔄 Docker Restart: Stop then run (build, start, and logs)
+# -----------------------------------------------
+docker-restart: docker-stop docker-run
 
 # -----------------------------------------------
 # 🚀 Step 3: Build and Deploy Backend to AWS

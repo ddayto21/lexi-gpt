@@ -91,7 +91,10 @@ app = FastAPI(lifespan=lifespan, redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow frontend domain to make requests
+    allow_origins=[
+        "http://localhost:3000",
+        "http:/localhost:8000",
+    ],  # Allow frontend domain to make requests
     allow_credentials=True,  # Ensure cookies are sent with requests
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],

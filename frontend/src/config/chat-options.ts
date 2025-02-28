@@ -18,7 +18,7 @@ export const chatOptions: UseChatOptions = {
    *
    * @type {string}
    */
-  api: "/api/chat",
+  api: "http://localhost:8000/chat",
   /**
    * Specifies the protocol used to stream AI-generated responses.
    *
@@ -68,9 +68,12 @@ export const chatOptions: UseChatOptions = {
    * @param {RequestInit} options - Fetch request options (headers, method, body).
    * @returns {Promise<Response>} - The API response from FastAPI.
    */
-  // fetch: async (url, options) => {
-  //   return await fetch(url, options);
-  // },
+  fetch: async (url, options) => {
+    return await fetch(url, {
+      ...options,
+      credentials: "include",
+    });
+  },
 
   /**
    * Handles errors encountered during the chat interaction.
@@ -80,9 +83,9 @@ export const chatOptions: UseChatOptions = {
    *
    * @param {Error} error - The error object representing the issue.
    */
-  // onError: (error) => {
-  //   console.error("❌ Chat interaction error:", error);
-  // },
+  onError: (error) => {
+    console.error("❌ Chat interaction error:", error);
+  },
 
   /**
    * Handles responses received from the FastAPI backend.

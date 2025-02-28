@@ -14,7 +14,18 @@ REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
 
 
 def exchange_code_for_token(code: str):
-    """Exchanges authorization code for access token"""
+    """
+    Exchanges an authorization code for tokens using Google OAuth 2.0 endpoint.
+
+    Args:
+        code (str): The authorization code received from the OAuth flow.
+
+    Returns:
+        dict: A dictionary containing the token data, including 'access_token' and 'id_token'.
+
+    Raises:
+        HTTPException: If REDIRECT_URI is not set or if token exchange fails.
+    """
     if not REDIRECT_URI:
         raise HTTPException(status_code=500, detail="GOOGLE_REDIRECT_URI is not set")
 
@@ -29,9 +40,16 @@ def exchange_code_for_token(code: str):
 
     response = requests.post(token_uri, data=payload)
 
-    token_data = response.json()
-    if "access_token" not in token_data:
-        raise HTTPException(status_code=401, detail="Failed to retrieve token")
+    try:
+        token_data = response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to parse token response")
+
+    if response.status_code != 200 or "access_token" not in token_data:
+        error_desc = token_data.get("error_description", "Unknown error")
+        raise HTTPException(
+            status_code=401, detail=f"Failed to retrieve token: {error_desc}"
+        )
 
     return token_data
 

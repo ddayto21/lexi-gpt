@@ -18,6 +18,7 @@ export const Header: React.FC = () => {
         });
         if (response.ok) {
           const data = await response.json();
+          console.log(`User profile data:`, JSON.stringify(data, null, 2));
           setUserProfile(data.profile || data.user);
         } else {
           console.error("Failed to fetch profile:", response.statusText);

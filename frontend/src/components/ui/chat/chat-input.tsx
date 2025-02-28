@@ -11,13 +11,11 @@ import React from "react";
 import { SendIcon } from "@components/icons/send-icon";
 import { PauseIcon } from "@components/icons/pause-icon";
 
-// Define the valid status types based on useChat from @ai-sdk/react
-
 interface ChatInputProps {
   input: string;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSend: (e: React.FormEvent<HTMLFormElement>) => void;
-  status: string;
+  status: string; // "ready" | "submitted" | "error"
 }
 
 /**
@@ -31,11 +29,19 @@ export const ChatInput = React.memo(
     const hasInput = input.trim() !== "";
     const isDisabled = status !== "ready";
 
+    // Handle Enter key press to submit the form
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && !isDisabled && hasInput) {
+        e.preventDefault();
+        onSend(new Event("submit", { bubbles: true }) as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    };
+
     return (
       <footer className="flex items-center p-4 bg-black border-t border-gray-800">
         <form onSubmit={onSend} className="flex items-center w-full">
           <input
-            className={`
+            className="
               flex-1
               px-4 py-2
               rounded-full
@@ -45,11 +51,11 @@ export const ChatInput = React.memo(
               focus:outline-none
               mr-2
               transition-colors duration-300
-              ${status === "error" ? "border-red-500" : ""}
-            `}
+            "
             placeholder="Type a message..."
             value={input}
             onChange={onInputChange}
+            onKeyDown={handleKeyDown}
             disabled={isDisabled}
             aria-label="Chat input"
           />
@@ -62,11 +68,9 @@ export const ChatInput = React.memo(
                 w-10 h-10
                 rounded-full
                 transition-colors duration-300
-                ${
-                  isDisabled
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                }
+                ${isDisabled
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"}
               `}
             >
               {isSending ? <PauseIcon /> : <SendIcon />}

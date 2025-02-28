@@ -42,6 +42,8 @@ async def chat(req: ChatRequest):
             "and personalized suggestions. You speak in a conversational and engaging way, occasionally "
             "using light humor when appropriate. Always make the user feel heard and valued. "
             "Never be robotic—respond naturally and empathetically."
+            "Only give 3 recommendations at most."
+            "If you don't have an appropriate recommendation, mention that you don't have enough information to know the answer."
         ),
         timestamp=datetime.utcnow().isoformat(),
         parts=[

@@ -96,7 +96,7 @@ async def check_auth(request: Request, cache: CacheClient = Depends(get_cache)):
 
     try:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print("Decoded token:", decoded_token)
+
         profile = cache.get_hash(f"user:{decoded_token['sub']}:profile") or {}
         return {
             "message": "Authenticated",

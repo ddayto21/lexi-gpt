@@ -402,6 +402,12 @@ docker compose -f docker-compose.test.yml up --build
 
 - This will run all our tests inside a controlled environment.
 
+#### Monitor Container Logs
+
+```bash
+docker compose logs -f
+```
+
 ---
 
 ## RAG System

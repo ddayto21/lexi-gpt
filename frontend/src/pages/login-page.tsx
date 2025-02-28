@@ -31,9 +31,8 @@ export function LoginPage() {
       `&access_type=offline` +
       `&prompt=${PROMPT}`;
 
-    console.log("Generated Auth URL:", authUrl);
-    // // Open a popup window for authentication
-    // const popup = window.open("", "authPopup", "width=500,height=600");
+    // window.location.href = authUrl;
+
 
     // Full-page redirect
     window.open(authUrl);
@@ -67,7 +66,7 @@ export function LoginPage() {
               className="flex items-center justify-center w-full p-3 rounded-full bg-white text-black font-medium text-lg transition hover:bg-gray-200"
             >
               <FcGoogle className="mr-2 text-2xl" />
-              Continue with Google
+              Log in with Google
             </button>
 
             {/* Divider */}

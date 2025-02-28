@@ -70,7 +70,7 @@ def set_session_cookie(response: Response, token: str):
         httponly=True,
         secure=True if is_production else False,
         samesite="None" if is_production else "Lax",
-        domain=FRONTEND_DOMAIN if is_production else None,
+        # domain=FRONTEND_DOMAIN if is_production else None,
     )
 
 
