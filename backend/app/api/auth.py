@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse
+from app.clients.book_cache_client import CacheClient  # Import your client
 from app.services.auth import exchange_code_for_token
 import os
 import jwt
@@ -15,11 +16,17 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 
 
+# Dependency to retrieve the cache from app.state
+async def get_cache(request: Request):
+    if not request.app.state.cache:
+        raise HTTPException(status_code=500, detail="Cache unavailable")
+    return request.app.state.cache
+
+
 @router.get("/auth/callback")
-async def auth_callback(request: Request):
-    """ " Handles Google OAuth callback and exchanges code for access token"""
+async def auth_callback(request: Request, cache: CacheClient = Depends(get_cache)):
+    """Handles Google OAuth callback and exchanges code for access token"""
     code = request.query_params.get("code")
-    print("code: ", code)
 
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
@@ -36,12 +43,26 @@ async def auth_callback(request: Request):
         google_id_token, options={"verify_signature": False}
     )
 
-    payload = {
+    # User profile data from google
+    user_profile = {
         "sub": decoded_google_token["sub"],  # Google User ID
         "email": decoded_google_token["email"],
         "name": decoded_google_token.get("name", ""),
-        "exp": datetime.datetime.utcnow()
-        + datetime.timedelta(days=7),  # ✅ Expires in 7 days
+    }
+    print("user_profile", user_profile)
+
+    # Store user profile data in Redis hash
+    redis_key = f"user: {user_profile['sub']}:profile"
+    cache.redis.hset(
+        redis_key,
+        mapping={"email": user_profile["email"], "name": user_profile["name"]},
+    )
+
+    payload = {
+        "sub": user_profile["sub"],
+        "email": user_profile["email"],
+        "name": user_profile["name"],
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
     }
 
     jwt_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
