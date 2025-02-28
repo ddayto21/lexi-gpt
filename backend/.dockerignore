@@ -1,39 +1,25 @@
-ecs/
-extra/
-
-.vscode/
-.idea/
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore cache and dependency directories
-node_modules/
-
-# Ignore all __pycache__ directories
-__pycache__/
-**/__pycache__/
-
-# Ignore all .pytest_cache directories
-.pytest_cache/
-**/.pytest_cache/
-
-*.pytest_cache/
-*.pytest_cache/**/*
-
-# Ignore all .mypy_cache directories
-.mypy_cache/
-**/.mypy_cache/
-
-
+# Ignore development and testing files
+__pycache__
 *.pyc
 *.pyo
 *.pyd
+venv/
+tests/
+.mocks/
+.pytest_cache
+.vscode
+.git
+.gitignore
 
-.mypy_cache/
-.ruff_cache/
+# Ignore build artifacts and configuration files not needed in production
+ecs/
+README.md
+package.json
+yarn.lock
+pytest.ini
+openapi.yaml
+redis/redis.conf # Only needed for Redis service, not the backend app
 
-# Ignore logs
+# Ignore logs and temporary files
 *.log
-logs/
+dist/

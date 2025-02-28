@@ -1,0 +1,30 @@
+# Ignore development and build artifacts
+node_modules/
+build/
+dist/
+dev.log
+
+# Ignore configuration files not needed in production
+Makefile
+babel.config.js
+config-overrides.js
+eslint.config.mjs
+jest.config.js
+playwright.config.ts
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+
+# Ignore documentation and metadata
+FRONTEND.md
+.git
+.gitignore
+.vscode
+
+# Ignore test files and temporary files
+*.log
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage/
