@@ -18,7 +18,7 @@ from app.config import (
     REDIS_URL,
 )
 from app.api import router as api_router
-from app.clients.book_cache_client import BookCacheClient
+from app.clients.book_cache_client import CacheClient
 from app.pipelines.load import load_book_embeddings, load_book_metadata
 from app.session_middleware import SessionMiddleware
 
@@ -69,12 +69,12 @@ async def lifespan(app: FastAPI):
         app.state.books_metadata = None
     # Initialize Redis cache client
     try:
-        app.state.book_cache = BookCacheClient()
+        app.state.cache = CacheClient()
         logging.info("Redis connection successful.")
 
     except Exception as e:
         logging.error(f"Failed to connect to Redis: {e}")
-        app.state.book_cache = None
+        app.state.cache = None
 
     yield  # Application runs here
 
@@ -110,11 +110,11 @@ async def root():
 @app.get("/healthcheck/redis")
 async def redis_healthcheck(request: Request):
     """Checks if Redis is running and reachable."""
-    book_cache = request.app.state.book_cache
-    if book_cache is None:
+    cache = request.app.state.cache
+    if cache is None:
         raise HTTPException(status_code=500, detail="Redis is unavailable")
     try:
-        book_cache.redis.ping()
+        cache.redis.ping()
         return {"status": "ok"}
     except Exception:
         raise HTTPException(status_code=500, detail="Redis ping failed")
