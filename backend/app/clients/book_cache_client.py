@@ -6,7 +6,7 @@ import os
 import logging
 
 
-class BookCacheClient:
+class CacheClient:
     """
     Provides caching for book search results in Redis.
 
