@@ -1,5 +1,4 @@
-# app/api/auth.py
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 import json
 import logging
@@ -15,7 +14,7 @@ from app.schemas.chat import ChatRequest, ChatMessage, ChatPart
 import asyncio
 from app.services.auth import verify_token
 from fastapi import Depends
-from app.clients.cache_client import CacheClient, get_cache
+
 
 load_dotenv()
 
@@ -35,13 +34,8 @@ client = AsyncOpenAI(api_key=API_KEY, base_url="https://api.deepseek.com/v1")
 
 
 @router.post("/chat")
-async def chat(
-    req: ChatRequest,
-    user=Depends(verify_token),
-    cache: CacheClient = Depends(get_cache),
-):
-    """Stream chat responses and store conversation history in Redis."""
-    user_id = user["sub"]
+async def chat(req: ChatRequest):
+    print("/chat route")
     system_prompt = ChatMessage(
         role="system",
         content=(
@@ -61,6 +55,7 @@ async def chat(
 
     # Insert system prompt at the beginning of the conversation history
     req.messages.insert(0, system_prompt)
+    print("req.messages", req.messages)
 
     stream = await client.chat.completions.create(
         model="deepseek-chat",
@@ -69,46 +64,16 @@ async def chat(
         temperature=0.3,
         stream=True,
     )
-    history_key = f"user:{user_id}:chat_history"
-    # Last message is the user message
-    user_message = req.messages[-1]
-    full_response = ""
 
     async def generator():
-        nonlocal full_response
         async for chunk in stream:
-            content = chunk.choices[0].delta.content or ""
-            yield content
-        # After streaming, save the conversation
-        turn = {
-            "id": str(uuid.uuid4()),
-            "role": "user",
-            "content": user_message.content,
-            "timestamp": user_message.timestamp,
-        }
-        cache.redis.lpush(history_key, json.dumps(turn))
+            yield chunk.choices[0].delta.content or ""
 
-        turn = {
-            "id": str(uuid.uuid4()),
-            "role": "assistant",
-            "content": full_response,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-        cache.redis.lpush(history_key, json.dumps(turn))
-
-    return StreamingResponse(generator(), media_type="text/event-stream")
+    response_messages = generator()
+    return StreamingResponse(response_messages, media_type="text/event-stream")
 
 
 @router.get("/chat/messages")
-async def get_messages(
-    user=Depends(verify_token), cache: CacheClient = Depends(get_cache)
-):
-    """Fetch conversation history for the authenticated user."""
-    user_id = user["sub"]
-    history_key = f"user:{user_id}:chat_history"
-    raw_history = cache.redis.lrange(history_key, 0, -1) or []
-    messages = [json.loads(entry) for entry in raw_history]
-    return {
-        "messages": messages[::-1],
-        "user": user["email"],
-    }  # Reverse to chronological order
+async def get_messages(user=Depends(verify_token)):
+    """Fetches messages for the authenticated user."""
+    return {"messages": ["Message 1", "Message 2"], "user": user["email"]}
