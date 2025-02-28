@@ -3,19 +3,22 @@ import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ picture?: string } | null>(
-    null
-  );
+  const [userProfile, setUserProfile] = useState<{
+    picture?: string;
+    name?: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch("/api/auth/status", {
-          credentials: "include", // Include cookies for JWT
+        const response = await fetch("/api/auth/profile", {
+          credentials: "include",
         });
         if (response.ok) {
           const data = await response.json();
-          setUserProfile(data.profile || data.user); // Use profile or JWT payload
+          setUserProfile(data.profile || data.user);
+        } else {
+          console.error("Failed to fetch profile:", response.statusText);
         }
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
@@ -29,9 +32,20 @@ export const Header: React.FC = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const handleSignOut = () => {
-    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    window.location.href = "/";
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/auth/signout", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.ok) {
+        window.location.href = "/";
+      } else {
+        console.error("Failed to sign out:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
     setIsMenuOpen(false);
   };
 
@@ -89,11 +103,11 @@ export const Header: React.FC = () => {
                 alt="User Profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/default-avatar.jpg"; // Fallback avatar
+                  (e.target as HTMLImageElement).src = "/default-avatar.jpg";
                 }}
               />
             ) : (
-              <span className="text-white">?</span> // Fallback if no picture
+              <span className="text-white">?</span>
             )}
           </button>
           {isMenuOpen && (
@@ -121,6 +135,11 @@ export const Header: React.FC = () => {
             </div>
           )}
         </div>
+        {userProfile && userProfile.name && (
+          <span className="ml-2 text-white font-medium">
+            {userProfile.name}
+          </span>
+        )}
       </div>
     </header>
   );

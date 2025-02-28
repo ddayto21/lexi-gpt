@@ -14,26 +14,29 @@ if (!process.env.REACT_APP_REDIRECT_URI) {
 
 export function LoginPage() {
   const handleLogin = () => {
-    const CLIENT_ID =
-      "883959908974-ln47bfa0n46vu4r0tm29kmrjhfqo15ep.apps.googleusercontent.com";
+    const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    // Your redirect URI should point to your backend /auth/callback endpoint
     const REDIRECT_URI = encodeURIComponent(
       "http://localhost:8000/auth/callback"
     );
     const SCOPE = encodeURIComponent("openid email profile");
+    const PROMPT = "select_account"; // Forces Google to always prompt for account selection
 
     const authUrl =
-      `https://accounts.google.com/o/oauth2/v2/auth/auth?` +
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${CLIENT_ID}` +
       `&redirect_uri=${REDIRECT_URI}` +
       `&response_type=code` +
       `&scope=${SCOPE}` +
       `&access_type=offline` +
-      // Ensure user is prompted for consent, even if previously granted
-      `&prompt=consent`;
-    // `&service=lso&o2v=2&ddm=1&flowName=GeneralOAuthFlow`;
+      `&prompt=${PROMPT}`;
 
     console.log("Generated Auth URL:", authUrl);
-    window.open(authUrl, "_self");
+    // // Open a popup window for authentication
+    // const popup = window.open("", "authPopup", "width=500,height=600");
+
+    // Full-page redirect
+    window.open(authUrl);
   };
 
   return (

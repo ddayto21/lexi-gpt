@@ -7,7 +7,7 @@ export function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/auth/status", {
+        const response = await fetch("http://localhost:8000/auth/profile", {
           method: "GET",
           credentials: "include", // ✅ Allows sending HTTP-only cookies
         });
