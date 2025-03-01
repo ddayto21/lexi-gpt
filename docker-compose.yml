@@ -1,6 +1,6 @@
 # docker-compose.yml
 # 🔹 Defines the core stack for testing & CI/CD.
-# 🔹 Used for automated testing (GitHub Actions) and staging environments.
+# 🔹 Use for automated testing (GitHub Actions) and staging environments.
 
 services:
   frontend:
