@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 
-const API_BASE_URL = process.env.READ_API_BASE_URL;
+const API_BASE_URL = process.env.REACT_APP_BASE_URL;
+if (!API_BASE_URL) {
+  throw new Error("API_BASE_URL is not set");
+}
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
