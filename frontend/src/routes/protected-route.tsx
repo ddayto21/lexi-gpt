@@ -21,7 +21,6 @@ export function ProtectedRoute({ children }: { children: React.JSX.Element }) {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);
-          L;
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
