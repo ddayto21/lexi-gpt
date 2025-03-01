@@ -8,8 +8,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.frontend
       target: dev
-    env_file:
-      - ./frontend/.env
+    environment:
+      - FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+
     ports:
       - "3000:3000"
     depends_on:
@@ -25,16 +26,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
-    env_file:
-      - ./backend/.env
 
     depends_on:
       - redis # Ensure Redis is started before the API.
 
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD} # Injected via AWS Secrets Manager
+      - REDIS_HOST: redis
+      - REDIS_PORT: 6379
+      - REDIS_PASSWORD: ${REDIS_PASSWORD}
+      - FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
 
     ports:
       - "127.0.0.1:8000:8000" # Bind the API service to localhost on port 8000.
