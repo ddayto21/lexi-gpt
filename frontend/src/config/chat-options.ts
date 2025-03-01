@@ -1,6 +1,12 @@
 // src/config/chatOptions.ts
 import { type UseChatOptions, type Message } from "@ai-sdk/react";
 
+if (!process.env.REACT_APP_BASE_URL) {
+  throw new Error("REACT_APP_BASE_URL is not set");
+}
+
+const BASE_API_URL = process.env.REACT_APP_BASE_URL;
+
 /**
  * @description Configuration for the useChat hook, defining the interaction with the backend API.
  * This object sets up the connection to the chat completion endpoint, specifies the streaming protocol,
@@ -18,7 +24,7 @@ export const chatOptions: UseChatOptions = {
    *
    * @type {string}
    */
-  api: "http://localhost:8000/chat",
+  api: `${BASE_API_URL}/chat`,
   /**
    * Specifies the protocol used to stream AI-generated responses.
    *
