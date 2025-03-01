@@ -12,13 +12,17 @@ if (!process.env.REACT_APP_REDIRECT_URI) {
   throw new Error("REACT_APP_REDIRECT_URI is not set");
 }
 
+if (!process.env.REACT_APP_BASE_URL) {
+  throw new Error("REACT_APP_BASE_URL is not set");
+}
+
+const BASE_API_URL = process.env.REACT_APP_BASE_URL;
+
 export function LoginPage() {
   const handleLogin = () => {
     const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     // Your redirect URI should point to your backend /auth/callback endpoint
-    const REDIRECT_URI = encodeURIComponent(
-      "http://localhost:8000/auth/callback"
-    );
+    const REDIRECT_URI = encodeURIComponent(`${BASE_API_URL}/auth/callback`);
     const SCOPE = encodeURIComponent("openid email profile");
     const PROMPT = "select_account"; // Forces Google to always prompt for account selection
 
@@ -32,7 +36,6 @@ export function LoginPage() {
       `&prompt=${PROMPT}`;
 
     // window.location.href = authUrl;
-
 
     // Full-page redirect
     window.open(authUrl);
