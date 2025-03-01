@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AiAvatar } from "@components/ui/avatars/ai-avatar";
 
+const API_BASE_URL = process.env.REACT_APP_BASE_URL;
+if (!API_BASE_URL) {
+  throw new Error("API_BASE_URL is not set");
+}
+
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{
@@ -13,7 +18,7 @@ export const Header: React.FC = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch("http://localhost:8000/auth/profile", {
+        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
           credentials: "include",
         });
         if (response.ok) {
@@ -38,7 +43,7 @@ export const Header: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      const response = await fetch("http://localhost:8000/auth/signout", {
+      const response = await fetch(`${API_BASE_URL}/auth/signout`, {
         method: "GET",
         credentials: "include",
       });
@@ -56,7 +61,7 @@ export const Header: React.FC = () => {
   // New function: Send DELETE request to clear user data from cache.
   const handleDeleteUserData = async () => {
     try {
-      const response = await fetch("http://localhost:8000/auth/cache", {
+      const response = await fetch(`${API_BASE_URL}/auth/cache`, {
         method: "DELETE",
         credentials: "include",
       });

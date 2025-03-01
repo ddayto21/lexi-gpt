@@ -46,6 +46,7 @@ jobs:
             --platform linux/amd64 \
             --provenance=false \
             --build-arg REDIS_PASSWORD="${REDIS_PASSWORD}" \
+            -f Dockerfile.backend \
             -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest \
             --load .
 
