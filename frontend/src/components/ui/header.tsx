@@ -36,8 +36,10 @@ export const Header = React.memo(() => {
   /**
    * Fetches the user's profile data from the API on component mount.
    *
-   * Makes a GET request to the profile endpoint with credentials included. Updates the
-   * `userProfile` state with the response data if successful. Errors are logged for debugging.
+   * Makes a GET request to `/auth/profile` with credentials included. Checks the response
+   * Content-Type to ensure it’s JSON before parsing. Updates `userProfile` with the data
+   * if successful, or logs detailed errors if the response is invalid or non-JSON. Falls
+   * back to null if parsing fails.
    */
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -45,9 +47,25 @@ export const Header = React.memo(() => {
         const response = await fetch(`${API_BASE_URL}/auth/profile`, {
           credentials: "include",
         });
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+
+        if (!response.ok) {
+          throw new Error(
+            `HTTP error: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const contentType = response.headers.get("Content-Type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          console.error("Profile response is not JSON:", {
+            contentType,
+            body: text,
+          });
+          return; // Leave userProfile as null
+        }
+
         const data = await response.json();
-        setUserProfile(data.profile || data.user);
+        setUserProfile(data.profile || data.user || null);
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
       }

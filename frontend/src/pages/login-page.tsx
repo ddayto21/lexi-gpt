@@ -1,53 +1,58 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Link } from "react-router-dom";
 import { RAGProcess } from "@components/ui/features/rag-system";
+import { authConfig } from "@config/auth-config";
 
-// Ensure required environment variables are set
-if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-  throw new Error("REACT_APP_GOOGLE_CLIENT_ID is not set");
-}
+/**
+ * Renders the login page with Google OAuth integration and a demo section.
+ *
+ * This component provides a split-screen layout: a demo of the RAG process on the left
+ * (visible on large screens) and a Google login form on the right. It constructs a Google
+ * OAuth URL using environment variables and redirects the user to authenticate when the
+ * login button is clicked. The component is optimized with memoization to prevent
+ * unnecessary re-renders and includes accessibility attributes for better usability.
+ *
+ * @component
+ * @returns {JSX.Element} The rendered login page.
+ * @example
+ * <LoginPage />
+ */
+export const LoginPage = React.memo(() => {
+  const [isLoading, setIsLoading] = useState(false);
 
-if (!process.env.REACT_APP_REDIRECT_URI) {
-  throw new Error("REACT_APP_REDIRECT_URI is not set");
-}
-
-if (!process.env.REACT_APP_BASE_URL) {
-  throw new Error("REACT_APP_BASE_URL is not set");
-}
-
-const BASE_API_URL = process.env.REACT_APP_BASE_URL;
-
-export function LoginPage() {
-  const handleLogin = () => {
-    const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-    // Your redirect URI should point to your backend /auth/callback endpoint
-    const REDIRECT_URI = encodeURIComponent(`${BASE_API_URL}/auth/callback`);
-    console.log(`Redirect URI: ${REDIRECT_URI}`);
-    const SCOPE = encodeURIComponent("openid email profile");
-    const PROMPT = "select_account"; // Forces Google to always prompt for account selection
-
-    const authUrl =
-      `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${CLIENT_ID}` +
-      `&redirect_uri=${REDIRECT_URI}` +
-      `&response_type=code` +
-      `&scope=${SCOPE}` +
-      `&access_type=offline` +
-      `&prompt=${PROMPT}`;
-
-    // window.location.href = authUrl;
-
-    // Full-page redirect
-    window.open(authUrl);
-  };
+  /**
+   * Initiates Google OAuth authentication by redirecting to the authorization URL.
+   *
+   * Constructs the OAuth URL using the `authConfig` settings, encoding parameters for
+   * security. Redirects the current window to the URL and sets a loading state for user
+   * feedback. Used for both login and signup actions, as the Google flow handles account
+   * creation if needed. Errors are logged for debugging.
+   *
+   * @function handleLogin
+   */
+  const handleLogin = useCallback(() => {
+    setIsLoading(true);
+    try {
+      const { clientId, redirectUri, scope, prompt, baseAuthUrl } = authConfig;
+      const authUrl = `${baseAuthUrl}?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=code&scope=${encodeURIComponent(
+        scope
+      )}&access_type=offline&prompt=${prompt}`;
+      window.location.href = authUrl; // Redirect in same window
+    } catch (error) {
+      console.error("Login redirect failed:", error);
+      setIsLoading(false); // Reset loading on error
+    }
+  }, []);
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-[#0a0a0a] text-white">
       {/* Left Side: Markdown Demo */}
-      <div className="hidden lg:flex flex-col items-center justify-center p-8 bg-gradient-to-b from-blue-900 to-purple-900 text-white">
+      <div className="hidden lg:flex flex-col items-center justify-center p-8 bg-gradient-to-b from-blue-900 to-purple-900">
         <div className="w-full max-w-lg mx-auto space-y-12">
-          <div className="w-[450px]">
+          <div className="max-w-full">
             <RAGProcess />
           </div>
         </div>
@@ -63,14 +68,17 @@ export function LoginPage() {
             <h2 className="text-xl text-gray-300 mt-2">Welcome Back</h2>
           </div>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
             {/* Google Sign-In Button */}
             <button
-              onClick={() => handleLogin()}
-              className="flex items-center justify-center w-full p-3 rounded-full bg-white text-black font-medium text-lg transition hover:bg-gray-200"
+              type="button"
+              onClick={handleLogin}
+              disabled={isLoading}
+              aria-label="Log in with Google"
+              className="flex items-center justify-center w-full p-3 rounded-full bg-white text-black font-medium text-lg transition hover:bg-gray-200 disabled:opacity-50"
             >
               <FcGoogle className="mr-2 text-2xl" />
-              Log in with Google
+              {isLoading ? "Logging in..." : "Log in with Google"}
             </button>
 
             {/* Divider */}
@@ -84,14 +92,21 @@ export function LoginPage() {
             </div>
 
             <p className="text-center text-sm text-gray-400">
-              Don&apos;t have an account?{" "}
-              <Link to="/signup" className="text-blue-500 hover:underline">
+              Don’t have an account?{" "}
+              <button
+                type="button"
+                onClick={handleLogin}
+                disabled={isLoading}
+                className="text-blue-500 hover:underline disabled:opacity-50"
+              >
                 Sign Up
-              </Link>
+              </button>
             </p>
           </form>
         </div>
       </div>
     </div>
   );
-}
+});
+
+LoginPage.displayName = "LoginPage";
