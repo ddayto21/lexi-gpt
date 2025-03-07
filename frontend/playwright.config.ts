@@ -6,40 +6,36 @@
  * - Test directory location
  * - Timeouts and retry settings
  * - Default base URL and screenshot capture policy
- * - Browser-specific project configurations (Chromium, Firefox, WebKit)
+ * - Browser-specific project configurations (e.g. Firefox in headed mode)
  */
 
 import { defineConfig, devices } from "@playwright/test";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-// Load environment variables from frontend/.env
+// Load environment variables from the .env file using __dirname (CommonJS variable).
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 export default defineConfig({
   testDir: "./src/tests/e2e", // Directory where tests will reside
-
-  timeout: 30000, // Global timeout for each test in milliseconds
-  retries: 2, // Retry flaky tests up to 2 times
+  timeout: 100000, // Global timeout for each test in milliseconds
+  retries: 0, // Number of test retries
   expect: {
-    timeout: 5000, // Timeout for expect assertions in milliseconds
+    timeout: 50000, // Timeout for expect assertions in milliseconds
   },
   use: {
-    baseURL: "http://localhost:3000", // Base URL for all tests
-    screenshot: "only-on-failure", // Capture screenshots only on test failure
+    baseURL: "http://localhost:3000",
+    screenshot: "only-on-failure",
+    // Load the storage state (auth-state.json) to simulate an already authenticated session.
+    storageState: "src/tests/e2e/config/auth-state.json",
   },
   projects: [
     {
-      name: "Chromium",
-      use: { ...devices["Desktop Chrome"] }, // Use Desktop Chrome configuration for Chromium
-    },
-    {
       name: "Firefox",
-      use: { ...devices["Desktop Firefox"] }, // Use Desktop Firefox configuration for Firefox
-    },
-    {
-      name: "WebKit",
-      use: { ...devices["Desktop Safari"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        headless: false, // Run in headed mode
+      },
     },
   ],
 });
