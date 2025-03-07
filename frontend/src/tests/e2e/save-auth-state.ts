@@ -1,19 +1,13 @@
 /**
  * @file save-auth-state.ts
- * @description Script to import pre-authenticated cookies and save them as a Playwright storage state.
+ * @description Utility to import pre-authenticated cookies and save them as a Playwright storage state.
  *
- * This script assumes you’ve manually logged into Google OAuth using a real Firefox browser
+ * This script assumes you have manually logged into Google OAuth using a real Firefox browser
  * and exported cookies (e.g., via Cookie-Editor) to `cookies.json`. It loads those cookies
  * into a Playwright context and saves the state as `auth-state.json` for test reuse.
  *
  * @example
- * 1. Manually log in via Firefox at http://localhost:3000/login.
- * 2. Export cookies using Cookie-Editor to `cookies.json` in this directory.
- * 3. Run the script directly:
- *    ```bash
- *    npx ts-node src/tests/e2e/save-auth-state.ts
- *    ```
- *    or have it run automatically before integration tests.
+ *   npx ts-node src/tests/e2e/save-auth-state.ts
  */
 
 import { firefox } from "playwright";
@@ -41,19 +35,19 @@ export interface ExportedCookie {
  * @returns {Promise<void>} Resolves when the storage state is saved and the browser is closed.
  */
 export async function saveAuthState(): Promise<void> {
-  // Launch a Firefox browser instance in headed mode (visible UI).
+  // Launch a Firefox browser instance in headed mode.
   const browser = await firefox.launch({ headless: false });
-
+  
   // Create a new browser context.
   const context = await browser.newContext();
-
-  // Open a new page within the browser context.
+  
+  // Open a new page.
   const page = await context.newPage();
-
+  
   // Load cookies from the exported file.
   const cookiesJson = await fs.readFile("src/tests/e2e/config/cookies.json", "utf-8");
   const cookies: ExportedCookie[] = JSON.parse(cookiesJson);
-
+  
   // Convert cookies to Playwright's cookie format.
   const playwrightCookies = cookies.map((cookie: ExportedCookie) => ({
     name: cookie.name,
@@ -63,30 +57,22 @@ export async function saveAuthState(): Promise<void> {
     expires: cookie.expires ? Math.floor(cookie.expires) : -1,
     httpOnly: cookie.httpOnly || false,
     secure: cookie.secure || false,
-    // Ensure the sameSite property is one of "Lax", "Strict", or "None"
+    // Ensure sameSite is one of "Lax", "Strict", or "None"
     sameSite: (cookie.sameSite as "Lax" | "Strict" | "None") || "Lax",
   }));
   await context.addCookies(playwrightCookies);
-
+  
   // Navigate to the chat page to ensure cookies are applied.
   await page.goto("http://localhost:3000/chat");
   console.log("Navigated to chat page with imported cookies...");
-
+  
   /**
    * Saves the browser's storage state (cookies, local storage) to a file.
    * @see {@link https://playwright.dev/docs/api/class-browsercontext#browser-context-storage-state|Playwright Storage State}
    */
   await context.storageState({ path: "src/tests/e2e/config/auth-state.json" });
   console.log("Saved authenticated state to src/tests/e2e/config/auth-state.json");
-
+  
   // Close the browser.
   await browser.close();
-}
-
-// If executed directly, run saveAuthState.
-if (require.main === module) {
-  saveAuthState().catch((error) => {
-    console.error("Error saving auth state:", error);
-    process.exit(1);
-  });
 }

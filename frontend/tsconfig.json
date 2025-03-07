@@ -1,21 +1,39 @@
 {
+  // Compiler options for TypeScript.
   "compilerOptions": {
+    // The target JavaScript version for compiled output.
     "target": "es5",
+    // Libraries to include during compilation.
     "lib": ["dom", "dom.iterable", "esnext"],
+    // Allow JavaScript files to be compiled.
     "allowJs": true,
+    // Skip type-checking of declaration files to speed up compilation.
     "skipLibCheck": true,
+    // Enables interoperability between CommonJS and ES Modules.
     "esModuleInterop": true,
+    // Allow default imports from modules that don't have a default export.
     "allowSyntheticDefaultImports": true,
+    // Enable all strict type-checking options.
     "strict": true,
+    // Ensure consistent casing in file names.
     "forceConsistentCasingInFileNames": true,
+    // Disallow fallthrough between switch cases.
     "noFallthroughCasesInSwitch": true,
+    // Specify the module code generation, "esnext" supports dynamic imports.
     "module": "esnext",
+    // Use Node's module resolution algorithm.
     "moduleResolution": "node",
+    // Allow importing JSON modules.
     "resolveJsonModule": true,
+    // Treat each file as an isolated module.
     "isolatedModules": true,
+    // Do not emit any compiled output.
     "noEmit": true,
+    // Specify the JSX code generation mode (for React).
     "jsx": "react-jsx",
+    // The base directory to resolve non-relative module names.
     "baseUrl": ".",
+    // Path mappings to simplify module imports.
     "paths": {
       "@pages/*": ["src/pages/*"],
       "@config/*": ["src/config/*"],
@@ -28,6 +46,8 @@
       "@styles/*": ["src/styles/*"]
     }
   },
-  "include": ["src", "src/tests/utils", "tests"],
+  // Include all files in the "src" folder (which covers all tests, including e2e).
+  "include": ["src"],
+  // Exclude node_modules.
   "exclude": ["node_modules"]
 }

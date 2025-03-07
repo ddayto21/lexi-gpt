@@ -27,5 +27,5 @@ yarn-error.log*
 
 dump.rdb
 
-src/tests/e2e/cookies.json
-src/tests/e2e/auth-state.json
+src/tests/e2e/config/cookies.json
+src/tests/e2e/config/auth-state.json
