@@ -5,7 +5,7 @@ if (!process.env.REACT_APP_BASE_URL) {
   throw new Error("REACT_APP_BASE_URL is not set");
 }
 
-const BASE_API_URL = process.env.REACT_APP_BASE_URL;
+const BASE_API_URL = process.env.REACT_APP_API_BASE_URL;
 
 /**
  * @description Configuration for the useChat hook, defining the interaction with the backend API.

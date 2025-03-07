@@ -23,6 +23,7 @@ export function LoginPage() {
     const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     // Your redirect URI should point to your backend /auth/callback endpoint
     const REDIRECT_URI = encodeURIComponent(`${BASE_API_URL}/auth/callback`);
+    console.log(`Redirect URI: ${REDIRECT_URI}`);
     const SCOPE = encodeURIComponent("openid email profile");
     const PROMPT = "select_account"; // Forces Google to always prompt for account selection
 

@@ -21,31 +21,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, status }) => {
   }, [status, filteredMessages]);
 
   return (
-    <main className="flex-1 overflow-auto p-4 space-y-4 bg-black">
-      {filteredMessages.map((message, index) => (
-        <ChatMessageComponent
-          key={index}
-          msg={message}
-          ref={index === filteredMessages.length - 1 ? lastMessageRef : null}
-        />
-      ))}
-      {status === "submitted" && (
-        <div className="flex items-start justify-start">
-          <div className="mr-2 flex-none">
-            <div className="h-8 w-8 flex items-center justify-center bg-neutral-800 rounded-full text-sm font-bold">
-              AI
+    <main className="flex-1 overflow-auto p-6 bg-black flex justify-center">
+      <div className="w-full max-w-3xl space-y-3">
+        {filteredMessages.map((message, index) => (
+          <ChatMessageComponent
+            key={index}
+            msg={message}
+            ref={index === filteredMessages.length - 1 ? lastMessageRef : null}
+          />
+        ))}
+        {status === "submitted" && (
+          <div className="flex items-start animate-fade-in-custom">
+            <div className="mr-3 flex-none">
+              <div className="h-8 w-8 flex items-center justify-center bg-gray-800 rounded-full text-sm font-medium text-gray-300">
+                AI
+              </div>
             </div>
-          </div>
-          <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl px-4 py-3 rounded-2xl shadow bg-neutral-800 rounded-bl-none">
-            <div className="flex items-center justify-center">
-              <Loading /> {/* Render the Loading spinner */}
-              <div className="ml-2 text-sm leading-snug whitespace-pre-wrap animate-pulse text-gray-100">
-                Thinking...
+            <div className="px-4 py-2 rounded-xl bg-gray-900 text-gray-300">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm animate-pulse">Thinking</span>
+                <span className="flex space-x-1">
+                  <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0s" }}></span>
+                  <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
+                  <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></span>
+                </span>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 };

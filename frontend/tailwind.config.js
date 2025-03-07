@@ -6,16 +6,7 @@ module.exports = {
     "components/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
-
-  //   theme: {
-  //     extend: {},
-  //   },
-  //   plugins: [],
-  // };
-
-  // module.exports = {
   darkMode: ["class"],
-  // content: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -64,6 +55,8 @@ module.exports = {
         "fade-in-up": "fadeInUp 0.6s ease-out forwards",
         "fade-in": "fadeIn 0.5s ease-out forwards",
         float: "float 6s ease-in-out infinite",
+        // Added my custom fade-in animation
+        "fade-in-custom": "fade-in-custom 0.3s ease-out",
       },
       keyframes: {
         fadeInUp: {
@@ -86,13 +79,17 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        // Added my custom fade-in keyframes
+        "fade-in-custom": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },
   variants: {},
   plugins: [
     require("tailwindcss-animate"),
-    // Add this if `scrollbar-hide` isn’t working
     function ({ addUtilities }) {
       addUtilities({
         ".scrollbar-hide": {
@@ -104,4 +101,5 @@ module.exports = {
         },
       });
     },
-  ],};
+  ],
+};

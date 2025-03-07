@@ -17,18 +17,14 @@ export const ChatMessageComponent = forwardRef<
   ChatMessageProps
 >(({ msg }, ref) => {
   const isAssistant = msg.role === "assistant";
-
   const content = useMemo(() => {
     try {
-      const formatted = formatContent(msg);
-
-      return formatted;
+      return formatContent(msg);
     } catch (error) {
       console.error("Error parsing message content", error);
       return "An error occurred while parsing the message content.";
     }
   }, [msg]);
-
   const relativeTime = msg.timestamp ? getTimeAgo(msg.timestamp) : "";
 
   return (
@@ -36,43 +32,43 @@ export const ChatMessageComponent = forwardRef<
       ref={ref}
       className={`flex items-start ${
         isAssistant ? "justify-start" : "justify-end"
-      }`}
+      } animate-fade-in`}
     >
-      {isAssistant ? (
-        <div className="mr-2 flex-none">
+      {isAssistant && (
+        <div className="mr-3 flex-none">
           <AiAvatar />
         </div>
-      ) : null}
-
+      )}
       <div
-        className={`max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl px-4 py-3 rounded-2xl shadow ${
-          isAssistant
-            ? "bg-neutral-800 rounded-bl-none"
-            : "bg-blue-600 rounded-br-none"
-        }`}
+        className={`
+          max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl
+          px-4 py-3 rounded-2xl shadow-md
+          transition-all duration-200 hover:shadow-lg
+          ${
+            isAssistant
+              ? "bg-gray-800 text-gray-200 rounded-bl-none"
+              : "bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-br-none"
+          }
+        `}
       >
         <div className="flex items-center gap-2 mb-1">
-          {isAssistant ? (
-            <span className="font-semibold text-sm text-gray-200">LexiGPT</span>
-          ) : (
-            <span className="font-semibold text-sm text-gray-200">You</span>
-          )}
+          <span className="font-medium text-sm">
+            {isAssistant ? "LexiGPT" : "You"}
+          </span>
           {relativeTime && (
             <span className="text-xs text-gray-400">{relativeTime}</span>
           )}
         </div>
-        <div className="text-sm leading-snug whitespace-pre-wrap text-gray-100">
+        <div className="text-sm leading-relaxed whitespace-pre-wrap">
           <ChatMarkdown content={content} />
         </div>
       </div>
-
-      {!isAssistant ? (
-        <div className="ml-2 flex-none">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600" />
+      {!isAssistant && (
+        <div className="ml-3 flex-none">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-700 shadow-md" />
         </div>
-      ) : null}
+      )}
     </div>
   );
 });
-
 ChatMessageComponent.displayName = "ChatMessageComponent";

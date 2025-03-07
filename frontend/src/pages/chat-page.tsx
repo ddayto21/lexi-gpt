@@ -126,7 +126,7 @@ export function ChatPage() {
     }
   };
   return (
-    <div className="flex flex-col h-screen bg-black text-white font-sans">
+    <div className="flex flex-col h-screen bg-black text-white font-sans antialiased">
       <Header />
 
       <StatusBar status={status} errorMessage={errorMessage} />
