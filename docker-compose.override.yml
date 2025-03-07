@@ -4,23 +4,25 @@
 
 services:
   frontend:
+    depends_on:
+      - api
+
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    
+
     env_file:
       - ./frontend/.env
     ports:
       - "3000:3000"
     environment:
-      - CHOKIDAR_USEPOLLING=true 
-    depends_on:
-      - api
+      CHOKIDAR_USEPOLLING: "true"
+      FRONTEND_ORIGIN: "http://localhost:3000"
 
   api:
     volumes:
       - ./backend/app:/code/app
-    
+
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
@@ -28,9 +30,9 @@ services:
       - ./backend/.env
     depends_on:
       - redis
-    
+
     ports:
-      - "127.0.0.1:8000:8000" 
+      - "127.0.0.1:8000:8000"
 
     environment:
       - REDIS_HOST=redis
@@ -39,8 +41,6 @@ services:
       - FRONTEND_ORIGIN=${FRONTEND_ORIGIN} # Allow CORS from local frontend host
       - UVICORN_WORKERS=${UVICORN_WORKERS:-4} # Default to 4 workers
 
-   
-   
     command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "${UVICORN_WORKERS:-4}" ]
 
   redis:

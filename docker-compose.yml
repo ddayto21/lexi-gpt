@@ -8,8 +8,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.frontend
       target: dev
+    
     environment:
-      - FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      FRONTEND_ORIGIN: "https://main.d2hvd5sv2imel0.amplifyapp.com"
 
     ports:
       - "3000:3000"
@@ -31,10 +32,10 @@ services:
       - redis # Ensure Redis is started before the API.
 
     environment:
-      - REDIS_HOST: redis
-      - REDIS_PORT: 6379
-      - REDIS_PASSWORD: ${REDIS_PASSWORD}
-      - FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      FRONTEND_ORIGIN: "${FRONTEND_ORIGIN}"
 
     ports:
       - "127.0.0.1:8000:8000" # Bind the API service to localhost on port 8000.
