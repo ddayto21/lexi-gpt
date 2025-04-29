@@ -16,7 +16,7 @@
 - **Multi-LLM Support**: Allows configuration of various language model providers.
 - **REST API**: Built with FastAPI to ensure efficient and high-performance search capabilities.
 
----
+----
 
 ## **RAG Pipeline**
 
