@@ -167,7 +167,7 @@ types-setuptools==75.8.0.20250110
 typing_extensions==4.12.2
 tzdata==2025.1
 ujson==5.10.0
-urllib3==2.3.0
+urllib3==2.7.0
 uvicorn==0.34.0
 uvloop==0.21.0
 wasabi==1.1.3
