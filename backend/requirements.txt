@@ -62,7 +62,7 @@ jsonschema-specifications==2024.10.1
 jupyter_client==8.6.3
 jupyter_core==5.7.2
 jupyterlab_pygments==0.3.0
-langchain==0.3.18
+langchain==0.3.30
 langchain-core==0.3.35
 langchain-text-splitters==0.3.6
 langcodes==3.5.0
