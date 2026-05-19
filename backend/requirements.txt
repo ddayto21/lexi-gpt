@@ -47,7 +47,7 @@ httptools==0.6.4
 httpx==0.28.1
 huggingface-hub==0.28.1
 hyperframe==6.1.0
-idna==3.10
+idna==3.15
 iniconfig==2.0.0
 ipython==8.12.3
 itsdangerous==2.2.0
