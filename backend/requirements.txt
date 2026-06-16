@@ -120,7 +120,7 @@ pytest-asyncio==0.25.3
 pytest-watcher==0.4.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
-python-multipart==0.0.20
+python-multipart==0.0.31
 pytz==2025.1
 PyYAML==6.0.2
 pyzmq==26.2.1
